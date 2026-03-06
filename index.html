@@ -220,6 +220,27 @@ header {
 .additive-code { font-weight:600; color:var(--accent); margin-right:6px; }
 .additive-name { color:var(--muted); font-size:0.7rem; }
 
+/* NUTRI SCORE */
+.ns-bar { display:flex; gap:3px; flex-wrap:wrap; margin-top:5px; }
+.ns-pill { display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border-radius:10px; font-size:0.6rem; font-weight:600; letter-spacing:0.3px; white-space:nowrap; }
+.ns-pill.green  { background:rgba(74,158,107,0.18); color:#4a9e6b; border:1px solid rgba(74,158,107,0.35); }
+.ns-pill.yellow { background:rgba(232,163,39,0.15); color:#e8a327; border:1px solid rgba(232,163,39,0.35); }
+.ns-pill.red    { background:rgba(212,79,58,0.15);  color:#d44f3a; border:1px solid rgba(212,79,58,0.35); }
+.ns-pill .ns-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.ns-pill.green .ns-dot  { background:#4a9e6b; }
+.ns-pill.yellow .ns-dot { background:#e8a327; }
+.ns-pill.red .ns-dot    { background:#d44f3a; }
+.variant-ing { margin-bottom:14px; }
+.variant-ing-name { font-size:0.62rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+.variant-opt { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; margin-bottom:5px; cursor:pointer; transition:border-color 0.15s; }
+.variant-opt.selected { border-color:var(--accent); background:rgba(232,163,39,0.07); }
+.variant-opt-radio { width:16px; height:16px; border-radius:50%; border:2px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.variant-opt.selected .variant-opt-radio { border-color:var(--accent); background:var(--accent); }
+.variant-opt.selected .variant-opt-radio::after { content:''; width:6px; height:6px; border-radius:50%; background:#000; }
+.variant-opt-info { flex:1; }
+.variant-opt-name { font-size:0.85rem; font-weight:500; }
+.variant-opt-sub { font-size:0.65rem; color:var(--muted); margin-top:1px; }
+
 /* LOADING SPINNER */
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -448,6 +469,25 @@ header {
   <div id="recetas-list"></div>
 </div>
 
+<!-- VARIANTS MODAL -->
+<div class="overlay" id="variants-overlay" onclick="closeVariants(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">
+      <span id="variants-title">Elige variante</span>
+      <button class="sheet-close" onclick="closeVariants()">✕</button>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:14px" id="variants-subtitle"></div>
+    <div id="variants-list"></div>
+    <button class="btn btn-accent" style="width:100%;margin-top:14px" onclick="confirmVariants()">
+      ✓ Confirmar y añadir al menú
+    </button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="skipVariants()">
+      Usar receta original sin cambios
+    </button>
+  </div>
+</div>
+
 <!-- PERSON CONFIG MODAL -->
 <div class="overlay" id="person-overlay" onclick="closePersonConfig(event)">
   <div class="sheet">
@@ -652,7 +692,17 @@ window._activeView = 'platos';
 
 // Helpers
 const sk = (d,m,p='all') => `${d}-${m}-${p}`;
-const gd = id => (window._dishes||[]).find(d => d.id === id);
+const gd = id => (window._dishes||[]).find(d => d.id === (typeof id === 'object' ? id.id : id));
+const gdEntry = entry => {
+  const dish = gd(entry);
+  if (!dish) return null;
+  if (typeof entry === 'object' && entry.brandOverrides && Object.keys(entry.brandOverrides).length) {
+    return { ...dish, _brandOverrides: entry.brandOverrides, _entryId: entry.id };
+  }
+  return dish;
+};
+const slotId = entry => typeof entry === 'string' ? entry : entry?.id;
+const slotOverrides = entry => typeof entry === 'object' ? entry?.brandOverrides || {} : {};
 
 function toast(msg, duration=2200) {
   const el = document.getElementById('toast');
@@ -773,6 +823,10 @@ function updateMacroPreview() {
        <span class="macro-tag kcal">🔥${m.k}kcal</span>
        <span style="font-size:0.62rem;color:var(--muted)">total del plato</span>`
     : `<span style="font-size:0.7rem;color:var(--muted)">Pulsa "? tipo" en cada ingrediente para confirmar y calcular macros</span>`;
+  // Append full NS table if there's data
+  if (hasData) {
+    el.innerHTML += nsTableFull(m);
+  }
 }
 
 // ── CATEGORY PICKER ──
@@ -1068,6 +1122,7 @@ function renderDishList() {
       <div class="dish-info">
         <div class="dish-name">🍽 ${d.name}</div>
         <div class="dish-macros">${macroHtml(d.macros)}</div>
+        ${d.macros ? nsBadgeCompact(d.macros) : ''}
       </div>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDish('${d.id}')">✕</button>
     </div>`).join('');
@@ -1080,9 +1135,9 @@ function calcWeekTotals() {
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
     const pids = ['all', ...(window._persons||[]).map(p=>p.id)];
     pids.forEach(pid => {
-      (window._week[sk(d,m,pid)]||[]).forEach(dishId => {
-        const dish=gd(dishId); if(!dish) return;
-        ids.add(dishId); k+=(dish.macros?.k||0); pr+=(dish.macros?.p||0);
+      (window._week[sk(d,m,pid)]||[]).forEach(entry => {
+        const dish=gd(slotId(entry)); if(!dish) return;
+        ids.add(slotId(entry)); k+=(dish.macros?.k||0); pr+=(dish.macros?.p||0);
       });
     });
   });
@@ -1134,13 +1189,20 @@ function renderMeals() {
   document.getElementById('meals-container').innerHTML = MEALS.map(({id:meal, label, icon}) => {
     let dishRows = '';
     showPids.forEach(pid => {
-      const slotDishes = (window._week[sk(selDay,meal,pid)]||[]).map(gd).filter(Boolean);
+      const slotEntries = window._week[sk(selDay,meal,pid)] || [];
+      const slotDishes = slotEntries.map(e => {
+        const dish = gd(slotId(e));
+        if (!dish) return null;
+        const overrides = slotOverrides(e);
+        const overrideCount = Object.values(overrides).filter(v => v !== 'original').length;
+        return { dish, overrides, overrideCount, entry: e };
+      }).filter(Boolean);
       if (!slotDishes.length) return;
       const person = pid==='all' ? null : (window._persons||[]).find(p=>p.id===pid);
       const badge = person ? `<span class="person-badge" style="background:${person.color}22;color:${person.color}">${person.name}</span>` : '';
-      dishRows += slotDishes.map(d=>`
+      dishRows += slotDishes.map(({dish:d, overrideCount})=>`
         <div class="meal-dish">
-          <span class="meal-dish-name">🍽 ${d.name}${badge}</span>
+          <span class="meal-dish-name">🍽 ${d.name}${badge}${overrideCount ? `<span style="font-size:0.6rem;color:var(--accent2);margin-left:4px">✎${overrideCount}</span>` : ''}</span>
           <span class="meal-dish-cal">${d.macros?.k?d.macros.k+'k':''}</span>
           <button class="meal-dish-del" onclick="removeFromSlot(${selDay},'${meal}','${d.id}','${pid}')">✕</button>
         </div>`).join('');
@@ -1166,7 +1228,7 @@ function renderMeals() {
 async function removeFromSlot(dayIdx, meal, dishId, pid='all') {
   const key = sk(dayIdx, meal, pid);
   const newWeek = {...window._week};
-  newWeek[key] = (newWeek[key]||[]).filter(id=>id!==dishId);
+  newWeek[key] = (newWeek[key]||[]).filter(e => slotId(e) !== dishId);
   await window._saveWeekToDb(newWeek);
 }
 window.removeFromSlot = removeFromSlot;
@@ -1183,8 +1245,9 @@ async function saveWeek() {
     const pids=['all',...(window._persons||[]).map(p=>p.id)];
     pids.forEach(pid=>{
       const key=sk(d,m,pid);
-      slots[key]=(window._week[key]||[]).map(id=>{
-        const dish=gd(id); return dish?{name:dish.name,macros:dish.macros,ingredients:dish.ingredients}:null;
+      slots[key]=(window._week[key]||[]).map(entry=>{
+        const id=slotId(entry); const dish=gd(id);
+        return dish?{name:dish.name,macros:dish.macros,ingredients:dish.ingredients}:null;
       }).filter(Boolean);
     });
   });
@@ -1288,8 +1351,8 @@ function buildShoppingList() {
   const pids = ['all', ...(window._persons||[]).map(p=>p.id)];
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
     pids.forEach(pid => {
-      (window._week[sk(d,m,pid)]||[]).forEach(dishId => {
-        const dish=gd(dishId); if(!dish) return;
+      (window._week[sk(d,m,pid)]||[]).forEach(entry => {
+        const dish=gd(slotId(entry)); if(!dish) return;
         (dish.ingredients||[]).forEach(ing => {
           if(!ing.name.trim()) return;
           const key=ing.name.toLowerCase().trim()+'_'+ing.unit;
@@ -1484,7 +1547,7 @@ window.renderStats = renderStats;
 function openPicker(dayIdx, meal, pid='all') {
   pickerTarget={dayIdx, meal, pid};
   const key=sk(dayIdx,meal,pid);
-  const assigned=window._week[key]||[];
+  const assigned=(window._week[key]||[]).map(slotId);
   const person = pid==='all' ? null : (window._persons||[]).find(p=>p.id===pid);
   const personLabel = person ? ` · ${person.name}` : ' · Todos';
   const mealObj = MEALS.find(m=>m.id===meal);
@@ -1508,16 +1571,114 @@ function openPicker(dayIdx, meal, pid='all') {
 }
 window.openPicker = openPicker;
 
+let variantTarget = null; // { dishId, pickerTarget }
+let variantSelections = {}; // { ingName: libItem | 'original' }
+
 async function pickDish(dishId) {
-  if(!pickerTarget) return;
-  const key=sk(pickerTarget.dayIdx, pickerTarget.meal, pickerTarget.pid);
-  const newWeek={...window._week};
-  if(!newWeek[key]) newWeek[key]=[];
-  if(!newWeek[key].includes(dishId)) newWeek[key].push(dishId);
-  await window._saveWeekToDb(newWeek);
-  closePicker();
+  if (!pickerTarget) return;
+  const dish = gd(dishId);
+  if (!dish) return;
+
+  // Find ingredients that have variants in library (same name, different brand)
+  const lib = window._ingLib || [];
+  const ings = (dish.ingredients || []).filter(i => i.name.trim());
+  const withVariants = ings.map(ing => {
+    const name = ing.name.toLowerCase().trim();
+    const matches = lib.filter(l => l.name.toLowerCase().trim() === name && l.brand);
+    return matches.length ? { ing, variants: matches } : null;
+  }).filter(Boolean);
+
+  if (!withVariants.length) {
+    // No variants — add directly
+    await commitPickDish(dishId, {});
+    return;
+  }
+
+  // Show variant picker modal
+  variantTarget = { dishId, pickerTarget: {...pickerTarget} };
+  variantSelections = {};
+  withVariants.forEach(({ing}) => { variantSelections[ing.name] = 'original'; });
+
+  document.getElementById('variants-title').textContent = `Variantes — ${dish.name}`;
+  document.getElementById('variants-subtitle').textContent =
+    `${withVariants.length} ingrediente${withVariants.length>1?'s':''} con variantes en tu biblioteca. ¿Cuál usas hoy?`;
+
+  document.getElementById('variants-list').innerHTML = withVariants.map(({ing, variants}) => `
+    <div class="variant-ing">
+      <div class="variant-ing-name">${ing.name}</div>
+      <div class="variant-opt selected" id="vopt-${ing.name}-original" onclick="selectVariant('${ing.name}','original')">
+        <div class="variant-opt-radio"></div>
+        <div class="variant-opt-info">
+          <div class="variant-opt-name">Receta original</div>
+          <div class="variant-opt-sub">${ing.qty}${ing.unit} · sin marca específica</div>
+        </div>
+      </div>
+      ${variants.map(v => `
+        <div class="variant-opt" id="vopt-${ing.name}-${v.id}" onclick="selectVariant('${ing.name}','${v.id}')">
+          <div class="variant-opt-radio"></div>
+          <div class="variant-opt-info">
+            <div class="variant-opt-name">${v.brand}</div>
+            <div class="variant-opt-sub">${v.price ? `💶 ${v.price}€/${v.priceUnit||'u'} · ` : ''}${v.k ? `🔥${v.k}kcal` : ''}${v.p ? ` · P:${v.p}g` : ''}</div>
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+
+  // Close picker, open variants
+  document.getElementById('picker-overlay').classList.remove('open');
+  document.getElementById('variants-overlay').classList.add('open');
 }
 window.pickDish = pickDish;
+
+function selectVariant(ingName, optId) {
+  variantSelections[ingName] = optId;
+  // Update visual selection within this ingredient's group
+  document.querySelectorAll(`[id^="vopt-${ingName}-"]`).forEach(el => el.classList.remove('selected'));
+  document.getElementById(`vopt-${ingName}-${optId}`)?.classList.add('selected');
+}
+window.selectVariant = selectVariant;
+
+async function confirmVariants() {
+  if (!variantTarget) return;
+  await commitPickDish(variantTarget.dishId, variantSelections);
+  closeVariants();
+}
+window.confirmVariants = confirmVariants;
+
+async function skipVariants() {
+  if (!variantTarget) return;
+  await commitPickDish(variantTarget.dishId, {});
+  closeVariants();
+}
+window.skipVariants = skipVariants;
+
+async function commitPickDish(dishId, selections) {
+  const target = variantTarget?.pickerTarget || pickerTarget;
+  if (!target) return;
+  const key = sk(target.dayIdx, target.meal, target.pid);
+  const newWeek = {...window._week};
+  if (!newWeek[key]) newWeek[key] = [];
+
+  // Store dishId + brand overrides as an object
+  const entry = Object.keys(selections).length
+    ? { id: dishId, brandOverrides: selections }
+    : dishId;
+
+  // Avoid duplicates (compare by id)
+  const alreadyIn = (newWeek[key] || []).some(e => (typeof e === 'string' ? e : e.id) === dishId);
+  if (!alreadyIn) newWeek[key].push(entry);
+
+  await window._saveWeekToDb(newWeek);
+  pickerTarget = null;
+  variantTarget = null;
+}
+window.commitPickDish = commitPickDish;
+
+function closeVariants(e) {
+  if (e && e.target !== document.getElementById('variants-overlay')) return;
+  document.getElementById('variants-overlay').classList.remove('open');
+  variantTarget = null;
+}
+window.closeVariants = closeVariants;
 
 function closePicker(e) {
   if(e&&e.target!==document.getElementById('picker-overlay')) return;
@@ -1654,6 +1815,7 @@ function renderLibList() {
           ${item.additives ? `<span class="macro-tag" style="color:var(--muted)">E: ${item.additives}</span>` : ''}
           <span style="font-size:0.6rem;color:var(--muted)">por 100g</span>
         </div>
+        ${nsBadgeCompact(item)}
       </div>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>
     </div>`).join('');
@@ -1710,6 +1872,7 @@ function renderRecetas() {
           ${m.f ? `<span class="macro-tag fat">G:${m.f}g</span>` : ''}
           ${ingCount ? `<span class="macro-tag" style="color:var(--muted)">${ingCount} ing.</span>` : ''}
         </div>
+        ${nsBadgeCompact(m)}
       </div>
       <span style="color:var(--muted);font-size:0.85rem">→</span>
     </div>`;
@@ -1727,7 +1890,75 @@ function openReceta(id) {
 }
 window.openReceta = openReceta;
 
-// ── ADITIVOS ──
+// ── NUTRI SCORE ──
+// Umbrales por 100g (alineados con semáforo FSA/RealFood)
+// [verde_max, amarillo_max] — encima de amarillo_max = rojo
+const NS_THRESHOLDS = {
+  k:    { label:'Calorías',     unit:'kcal', lo:200,  hi:400,  invert:false },
+  p:    { label:'Proteínas',    unit:'g',    lo:10,   hi:20,   invert:true  }, // alto es bueno
+  c:    { label:'Hidratos',     unit:'g',    lo:20,   hi:45,   invert:false },
+  sugar:{ label:'Azúcares',     unit:'g',    lo:5,    hi:12.5, invert:false },
+  f:    { label:'Grasas',       unit:'g',    lo:3,    hi:17.5, invert:false },
+  sat:  { label:'Grasas sat.',  unit:'g',    lo:1.5,  hi:5,    invert:false },
+  fiber:{ label:'Fibra',        unit:'g',    lo:3,    hi:6,    invert:true  }, // alto es bueno
+  salt: { label:'Sal',          unit:'g',    lo:0.3,  hi:1.5,  invert:false },
+};
+
+// Devuelve 'green'|'yellow'|'red' para un valor
+function nsColor(key, val) {
+  const t = NS_THRESHOLDS[key];
+  if (!t || val === undefined || val === null || val === 0) return null;
+  if (t.invert) {
+    // alto = verde
+    if (val >= t.hi) return 'green';
+    if (val >= t.lo) return 'yellow';
+    return 'red';
+  } else {
+    // bajo = verde
+    if (val <= t.lo) return 'green';
+    if (val <= t.hi) return 'yellow';
+    return 'red';
+  }
+}
+
+// Badge compacto para usar en listas: solo muestra los rojos y la proteína
+function nsBadgeCompact(data) {
+  // data puede ser macros de plato {k,p,c,f} o ingrediente {k,p,c,f,sugar,sat,fiber,salt}
+  const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
+  const pills = [];
+  keys.forEach(key => {
+    const val = data?.[key];
+    if (val === undefined || val === null || !val) return;
+    const color = nsColor(key, val);
+    if (!color) return;
+    const t = NS_THRESHOLDS[key];
+    // En compacto: solo rojos + proteína (para no saturar)
+    if (color === 'red' || key === 'p') {
+      pills.push(`<span class="ns-pill ${color}"><span class="ns-dot"></span>${t.label}</span>`);
+    }
+  });
+  if (!pills.length) return '';
+  return `<div class="ns-bar">${pills.join('')}</div>`;
+}
+
+// Tabla completa para detalle
+function nsTableFull(data) {
+  const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
+  const rows = keys.map(key => {
+    const val = data?.[key];
+    if (val === undefined || val === null) return '';
+    const color = nsColor(key, val);
+    if (!color) return '';
+    const t = NS_THRESHOLDS[key];
+    const emoji = color==='green'?'🟢':color==='yellow'?'🟡':'🔴';
+    return `<tr class="ns-tr-${color}">
+      <td>${t.label}</td>
+      <td>${val}${t.unit} ${emoji}</td>
+    </tr>`;
+  }).filter(Boolean);
+  if (!rows.length) return '';
+  return `<table class="ns-table"><tbody>${rows.join('')}</tbody></table>`;
+}
 const ADDITIVES_DB = [
   // Colorantes E1xx
   { code:'E100', name:'Curcumina (amarillo)' },
