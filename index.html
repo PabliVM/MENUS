@@ -553,6 +553,9 @@ function startListeners() {
     window._shopExtra = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (window._activeView === 'compra') window.renderCompra();
   });
+
+  // Ingredient library
+  onSnapshot(collection(db, 'ingLib'), snap => {
     window._ingLib = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a,b) => a.name.localeCompare(b.name));
     if (window._activeView === 'biblioteca') window.renderLibList();
