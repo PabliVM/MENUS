@@ -204,13 +204,16 @@ header {
 /* CATEGORY PICKER */
 .cat-group { margin-bottom: 14px; }
 .cat-group-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.cat-item { padding: 11px 12px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer; transition: border-color 0.15s; }
+.cat-grid { display: flex; flex-direction: column; gap: 4px; }
+.cat-item { padding: 9px 12px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer; transition: all 0.12s; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .cat-item:active { border-color: var(--accent2); }
 .cat-item-saved { background: rgba(74,158,107,0.08); border-color: rgba(74,158,107,0.3); position: relative; }
 .cat-item-saved .cat-item-name::before { content: '★ '; color: var(--accent2); font-size: 0.75rem; }
 .cat-item-del { position: absolute; top: 6px; right: 6px; background: none; border: none; color: var(--muted); font-size: 0.7rem; cursor: pointer; padding: 2px 5px; font-family: 'Instrument Sans', sans-serif; }
 .cat-item-del:active { color: var(--red); }
+.cat-item-name { font-size: 0.82rem; font-weight: 500; flex: 1; }
+.cat-item-macros { font-size: 0.6rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.cat-item-brand { font-size: 0.6rem; color: var(--accent2); margin-left: 4px; }
 .save-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 8px; margin-top: 10px; cursor: pointer; font-size: 0.82rem; }
 .save-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent2); flex-shrink: 0; }
 
@@ -267,6 +270,18 @@ header {
 
 /* SUB-HEADER back button */
 .sub-header { padding: 10px 0 14px; }
+/* Toast de confirmación destructiva */
+.toast-confirm {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: #2a2724; border: 1.5px solid var(--red); border-radius: 12px;
+  padding: 12px 16px; z-index: 2000; display: flex; align-items: center;
+  gap: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 260px;
+  animation: up 0.18s ease;
+}
+.toast-confirm-msg { flex: 1; font-size: 0.8rem; color: var(--ink); }
+.toast-confirm-cancel { background: none; border: 1px solid var(--border2); color: var(--muted); border-radius: 8px; padding: 5px 12px; font-size: 0.72rem; cursor: pointer; font-family: inherit; }
+.toast-confirm-ok { background: var(--red); border: none; color: #fff; border-radius: 8px; padding: 5px 12px; font-size: 0.72rem; cursor: pointer; font-family: inherit; font-weight: 600; }
+
 /* Sub-vistas: fondo sólido para que no se vea lo de debajo */
 .subview {
   background: var(--bg);
@@ -666,6 +681,9 @@ header {
       <span id="cat-title">¿Qué tipo de alimento es?</span>
       <button class="sheet-close" onclick="closeCat()">✕</button>
     </div>
+    <input id="cat-search" type="text" placeholder="Buscar…"
+      style="width:100%;box-sizing:border-box;margin-bottom:12px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.82rem"
+      oninput="renderCatBody()" />
     <div id="cat-body"></div>
   </div>
 </div>
@@ -722,9 +740,10 @@ function startListeners() {
   onSnapshot(collection(db, 'dishes'), snap => {
     window._dishes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     setSyncState('ok', 'sincronizado');
-    if (window._activeView === 'platos') window.renderDishList();
-    if (window._activeView === 'semana') window.renderSemana();
-    if (window._activeView === 'stats')  window.renderStats();
+    if (window._activeView === 'semana')    window.renderSemana();
+    if (window._activeView === 'stats')     window.renderStats();
+    if (window._activeView === 'recetas')   window.renderRecetas();
+    if (window._activeView === 'compra')    window.renderCompra();
   }, () => setSyncState('err', 'sin conexión'));
 
   // Week
@@ -758,6 +777,8 @@ function startListeners() {
     window._ingLib = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a,b) => a.name.localeCompare(b.name));
     if (window._activeView === 'biblioteca') window.renderLibList();
+    // Si el picker está abierto, refrescar también
+    if (document.getElementById('cat-overlay')?.classList.contains('open')) window.renderCatBody();
   });
 }
 window._saveDishToDb = async (dish) => {
@@ -933,44 +954,94 @@ window.showBibSub = showBibSub;
 // ── PLATOS ──
 function addIngRow(val) {
   const id = (Date.now()+Math.random()).toString();
-  ingRows.push({ id, name:val?.name||'', qty:val?.qty||'', unit:val?.unit||'g', macros100:val?.macros100||null });
-  renderIngRows();
+  const row = { id, name:val?.name||'', qty:val?.qty||'', unit:val?.unit||'g', macros100:val?.macros100||null };
+  ingRows.push(row);
+  // Añadir solo el nuevo bloque al DOM sin reconstruir los existentes
+  const el = document.getElementById('ing-list');
+  if (el) {
+    const div = document.createElement('div');
+    div.innerHTML = ingBlockHtml(row, ingRows.length - 1);
+    el.appendChild(div.firstElementChild);
+  } else {
+    renderIngRows();
+  }
+  updateMacroPreview();
 }
 window.addIngRow = addIngRow;
 
+function ingBlockHtml(r, i) {
+  const m = r.macros100;
+  const resultHtml = m
+    ? `<div class="ing-result found">✓ 🔥${m.k}kcal · P:${m.p}g · C:${m.c}g · G:${m.f}g <span style="opacity:0.6">por 100g</span></div>`
+    : r.confirmed
+      ? `<div class="ing-result notfound">Sin datos — no se incluye en el cálculo</div>`
+      : '';
+  return `
+  <div class="ing-block" id="ib-${r.id}">
+    <div class="ing-top">
+      <div class="field">${i===0?'<label>Ingrediente</label>':''}
+        <input type="text" value="${r.name.replace(/"/g,'&quot;')}" placeholder="Pollo, arroz, tomate…"
+          oninput="updateIngName('${r.id}',this.value)" />
+      </div>
+      <button class="ing-cat-btn ${m?'confirmed':''}" onclick="openCat('${r.id}')">${m?'✓ '+r.name:'? tipo'}</button>
+    </div>
+    <div class="ing-bottom">
+      <div class="field">${i===0?'<label>Cantidad</label>':''}
+        <input type="number" value="${r.qty}" placeholder="200" min="0"
+          oninput="updateIng('${r.id}','qty',this.value)" />
+      </div>
+      <div class="field">${i===0?'<label>Unidad</label>':''}
+        <select onchange="updateIng('${r.id}','unit',this.value)">
+          ${UNIT_OPTS.map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </div>
+      <button class="ing-del" onclick="delIng('${r.id}')">✕</button>
+    </div>
+    ${resultHtml}
+  </div>`;
+}
+
 function renderIngRows() {
   const el = document.getElementById('ing-list');
-  el.innerHTML = ingRows.map((r,i) => {
+  el.innerHTML = ingRows.map((r,i) => ingBlockHtml(r,i)).join('');
+  updateMacroPreview();
+}
+
+// Actualiza SOLO el bloque del ingrediente afectado, preservando otros inputs
+function updateIngBlock(id) {
+  const idx = ingRows.findIndex(r=>r.id==id);
+  if (idx < 0) return;
+  const r = ingRows[idx];
+  const existing = document.getElementById(`ib-${r.id}`);
+  if (!existing) { renderIngRows(); return; }
+  // Solo actualizar el botón tipo y el result — sin tocar inputs
+  const btn = existing.querySelector('.ing-cat-btn');
+  if (btn) {
+    btn.textContent = r.macros100
+      ? `✓ ${r.name}`
+      : (r.confirmed ? '— sin datos' : '? tipo');
+    btn.className = 'ing-cat-btn' + (r.macros100 ? ' confirmed' : '');
+    btn.onclick = () => openCat(r.id);
+  }
+  let result = existing.querySelector('.ing-result');
+  if (r.macros100) {
     const m = r.macros100;
-    const resultHtml = m
-      ? `<div class="ing-result found">✓ 🔥${m.k}kcal · P:${m.p}g · C:${m.c}g · G:${m.f}g <span style="opacity:0.6">por 100g</span></div>`
-      : r.confirmed
-        ? `<div class="ing-result notfound">Sin datos — no se incluye en el cálculo</div>`
-        : '';
-    return `
-    <div class="ing-block" id="ib-${r.id}">
-      <div class="ing-top">
-        <div class="field">${i===0?'<label>Ingrediente</label>':''}
-          <input type="text" value="${r.name}" placeholder="Pollo, arroz, tomate…"
-            oninput="updateIngName('${r.id}',this.value)" />
-        </div>
-        <button class="ing-cat-btn ${m?'confirmed':''}" onclick="openCat('${r.id}')">${m?'✓':'? tipo'}</button>
-      </div>
-      <div class="ing-bottom">
-        <div class="field">${i===0?'<label>Cantidad</label>':''}
-          <input type="number" value="${r.qty}" placeholder="200" min="0"
-            oninput="updateIng('${r.id}','qty',this.value)" />
-        </div>
-        <div class="field">${i===0?'<label>Unidad</label>':''}
-          <select onchange="updateIng('${r.id}','unit',this.value)">
-            ${UNIT_OPTS.map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
-          </select>
-        </div>
-        <button class="ing-del" onclick="delIng('${r.id}')">✕</button>
-      </div>
-      ${resultHtml}
-    </div>`;
-  }).join('');
+    if (!result) {
+      result = document.createElement('div');
+      existing.appendChild(result);
+    }
+    result.className = 'ing-result found';
+    result.innerHTML = `✓ 🔥${m.k}kcal · P:${m.p}g · C:${m.c}g · G:${m.f}g <span style="opacity:0.6">por 100g</span>`;
+  } else if (r.confirmed) {
+    if (!result) { result = document.createElement('div'); existing.appendChild(result); }
+    result.className = 'ing-result notfound';
+    result.textContent = 'Sin datos — no se incluye en el cálculo';
+  } else if (result) {
+    result.remove();
+  }
+  // Rellenar nombre en el input si estaba vacío
+  const nameInput = existing.querySelector('input[type="text"]');
+  if (nameInput && !nameInput.value.trim() && r.name) nameInput.value = r.name;
   updateMacroPreview();
 }
 
@@ -1122,23 +1193,30 @@ function openCat(ingId) {
   catTarget = ingId;
   const r = ingRows.find(r=>r.id==ingId);
   document.getElementById('cat-title').textContent = r?.name ? `"${r.name}" — ¿qué es?` : '¿Qué tipo de alimento?';
+  const s = document.getElementById('cat-search'); if (s) s.value = '';
   renderCatBody();
   document.getElementById('cat-overlay').classList.add('open');
+  setTimeout(() => s?.focus(), 150);
 }
 window.openCat = openCat;
 
 function renderCatBody() {
   const body = document.getElementById('cat-body');
   const lib = window._ingLib || [];
+  const q = (document.getElementById('cat-search')?.value||'').toLowerCase().trim();
   window._catItems = {};
   let idx = 0;
+  const matchQ = name => !q || name.toLowerCase().includes(q);
 
   function itemCard(item, extraClass, delBtn) {
     const key = 'ci' + (idx++);
     window._catItems[key] = item;
-    return `<div class="cat-item ${extraClass}" onclick="confirmCatKey('${key}')" style="${extraClass?'position:relative':''}">
-      <div class="cat-item-name">${item.name}</div>
-      <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
+    const brandHtml = item.brand ? `<span class="cat-item-brand">${item.brand}</span>` : '';
+    return `<div class="cat-item ${extraClass}" onclick="confirmCatKey('${key}')">
+      <div style="flex:1;min-width:0">
+        <div class="cat-item-name">${item.name}${brandHtml}</div>
+      </div>
+      <div class="cat-item-macros">🔥${item.k||'—'} · P${item.p||0} · C${item.c||0} · G${item.f||0}</div>
       ${delBtn||''}
     </div>`;
   }
@@ -1147,8 +1225,8 @@ function renderCatBody() {
     <div class="cat-group">
       <div class="cat-group-title">⭐ Mis ingredientes guardados</div>
       <div class="cat-grid">
-        ${lib.map(item => itemCard(
-          {name:item.name,p:item.p,c:item.c,f:item.f,k:item.k},
+        ${lib.filter(item=>matchQ(item.name)).map(item => itemCard(
+          {name:item.name,brand:item.brand||'',p:item.p,c:item.c,f:item.f,k:item.k},
           'cat-item-saved',
           `<button class="cat-item-del" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>`
         )).join('')}
@@ -1159,7 +1237,7 @@ function renderCatBody() {
     <div class="cat-group">
       <div class="cat-group-title">${group}</div>
       <div class="cat-grid">
-        ${items.map(item => itemCard(item, '', '')).join('')}
+        ${items.filter(item=>matchQ(item.name)).map(item => itemCard(item, '', '')).join('')}
       </div>
     </div>`).join('');
 
@@ -1194,18 +1272,16 @@ function confirmCat(item) {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
   r.macros100 = { p:item.p, c:item.c, f:item.f, k:item.k };
   r.confirmed = true;
-  // Rellenar nombre automáticamente si el campo está vacío o es genérico
-  if (!r.name.trim()) {
-    r.name = item.name;
-  }
-  // Actualizar el input visible del nombre
+  // Actualizar siempre el nombre con el del picker (nombre canónico)
+  r.name = item.name;
+  // Reflejar en el input visible
   const inputEl = document.querySelector(`#ib-${r.id} input[type="text"]`);
-  if (inputEl && !inputEl.value.trim()) inputEl.value = item.name;
+  if (inputEl) inputEl.value = item.name;
   // Offer to save if not already in library
   const lib = window._ingLib || [];
   const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
   closeCat();
-  renderIngRows();
+  updateIngBlock(r.id);
   if (!alreadySaved) {
     setTimeout(() => {
       if (confirm(`¿Guardar "${item.name}" en tu biblioteca para usarlo en otras recetas?`)) {
@@ -1258,10 +1334,10 @@ window.confirmCatNone = confirmCatNone;
 function closeCat(e) {
   if (e && e.target !== document.getElementById('cat-overlay')) return;
   document.getElementById('cat-overlay').classList.remove('open');
+  const s = document.getElementById('cat-search'); if (s) s.value = '';
   catTarget = null;
 }
 window.closeCat = closeCat;
-
 // ── SAVE DISH ──
 async function saveDish() {
   const name = document.getElementById('f-name').value.trim();
@@ -1322,14 +1398,35 @@ function cancelEdit() {
 }
 window.cancelEdit = cancelEdit;
 
+function confirmToast(msg, onConfirm) {
+  // Eliminar toast previo si existe
+  document.querySelector('.toast-confirm')?.remove();
+  const el = document.createElement('div');
+  el.className = 'toast-confirm';
+  el.innerHTML = `
+    <div class="toast-confirm-msg">${msg}</div>
+    <button class="toast-confirm-cancel">Cancelar</button>
+    <button class="toast-confirm-ok">Eliminar</button>`;
+  document.body.appendChild(el);
+  const cleanup = () => el.remove();
+  el.querySelector('.toast-confirm-cancel').onclick = cleanup;
+  el.querySelector('.toast-confirm-ok').onclick = () => { cleanup(); onConfirm(); };
+  // Auto-cerrar tras 6s
+  setTimeout(cleanup, 6000);
+}
+window.confirmToast = confirmToast;
+
 async function deleteDish(id) {
-  if (!confirm('¿Eliminar este plato?')) return;
-  // Remove from week too
-  const newWeek = {...window._week};
-  Object.keys(newWeek).forEach(k=>{ newWeek[k]=(newWeek[k]||[]).filter(x=>x!==id); });
-  await window._saveWeekToDb(newWeek);
-  await window._deleteDishFromDb(id);
-  toast('Plato eliminado');
+  const dish = (window._dishes||[]).find(d=>d.id===id);
+  const name = dish?.name || 'este plato';
+  confirmToast(`¿Eliminar "${name}"?`, async () => {
+    const newWeek = {...window._week};
+    Object.keys(newWeek).forEach(k=>{ newWeek[k]=(newWeek[k]||[]).filter(x=>x!==id); });
+    await window._saveWeekToDb(newWeek);
+    await window._deleteDishFromDb(id);
+    toast('Plato eliminado');
+    renderRecetas();
+  });
 }
 window.deleteDish = deleteDish;
 
@@ -1501,8 +1598,7 @@ window.removeFromSlot = removeFromSlot;
 
 async function saveWeek() {
   const {k,pr,unique} = calcWeekTotals();
-  const now=new Date();
-  const mon=new Date(now); mon.setDate(now.getDate()-((now.getDay()+6)%7));
+  const mon=getWeekMonday(window._weekOffset||0);
   const sun=new Date(mon); sun.setDate(mon.getDate()+6);
   const fmt=d=>d.toLocaleDateString('es-ES',{day:'numeric',month:'short'});
   const label=`${fmt(mon)} – ${fmt(sun)}`;
@@ -1513,7 +1609,7 @@ async function saveWeek() {
       const key=sk(d,m,pid);
       slots[key]=(window._week[key]||[]).map(entry=>{
         const id=slotId(entry); const dish=gd(id);
-        return dish?{name:dish.name,macros:dish.macros,ingredients:dish.ingredients}:null;
+        return dish?{id:dish.id,name:dish.name,macros:dish.macros,ingredients:dish.ingredients}:null;
       }).filter(Boolean);
     });
   });
@@ -1783,7 +1879,8 @@ async function loadHistWeek(histId) {
   const newWeek = {};
   Object.entries(h.slots).forEach(([key, arr]) => {
     const ids = (arr||[]).map(dish => {
-      const found = (window._dishes||[]).find(d => d.name===dish.name);
+      // Buscar por id primero (historial nuevo), luego por nombre (historial antiguo)
+      const found = (window._dishes||[]).find(d => d.id === dish.id || d.name === dish.name);
       return found ? found.id : null;
     }).filter(Boolean);
     if (ids.length) newWeek[key] = ids;
@@ -2235,7 +2332,11 @@ function renderRecetas() {
         </div>
         ${nsBadgeCompact(m)}
       </div>
-      <span style="color:var(--muted);font-size:0.85rem">→</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="color:var(--muted);font-size:0.85rem">→</span>
+        <button class="btn btn-danger btn-sm" style="padding:4px 9px;font-size:0.7rem"
+          onclick="event.stopPropagation();deleteDish('${d.id}')">🗑</button>
+      </div>
     </div>`;
   }).join('');
 }
