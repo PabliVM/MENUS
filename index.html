@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -15,210 +16,210 @@
 body { font-family: 'Instrument Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; padding-bottom: 72px; }
 
 /* SYNC INDICATOR */
-.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; transition: background 0.3s; }
-.sync-dot.syncing { background: var(--accent); animation: pulse 1s infinite; }
-.sync-dot.ok { background: var(--accent2); }
-.sync-dot.err { background: var(--red); }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(–muted); display: inline-block; transition: background 0.3s; }
+.sync-dot.syncing { background: var(–accent); animation: pulse 1s infinite; }
+.sync-dot.ok { background: var(–accent2); }
+.sync-dot.err { background: var(–red); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
 header {
-  padding: 16px 20px 0;
-  display: flex; align-items: center; justify-content: space-between;
+padding: 16px 20px 0;
+display: flex; align-items: center; justify-content: space-between;
 }
-.logo { font-family: 'Fraunces', serif; font-size: 1.5rem; font-weight: 700; color: var(--accent); line-height: 1; }
-.logo span { font-style: italic; font-weight: 300; color: var(--muted); font-size: 0.75rem; display: block; margin-top: 2px; }
-.header-right { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; color: var(--muted); }
+.logo { font-family: ‘Fraunces’, serif; font-size: 1.5rem; font-weight: 700; color: var(–accent); line-height: 1; }
+.logo span { font-style: italic; font-weight: 300; color: var(–muted); font-size: 0.75rem; display: block; margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; color: var(–muted); }
 
 /* BOTTOM NAV */
 .bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--surface); border-top: 1px solid var(--border2);
-  display: flex; z-index: 200; padding-bottom: env(safe-area-inset-bottom);
+position: fixed; bottom: 0; left: 0; right: 0;
+background: var(–surface); border-top: 1px solid var(–border2);
+display: flex; z-index: 200; padding-bottom: env(safe-area-inset-bottom);
 }
 .nav-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 10px 4px 8px; font-size: 0.52rem; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--muted); cursor: pointer;
-  border: none; background: none; font-family: 'Instrument Sans', sans-serif; gap: 3px;
+flex: 1; display: flex; flex-direction: column; align-items: center;
+padding: 10px 4px 8px; font-size: 0.52rem; letter-spacing: 1px;
+text-transform: uppercase; color: var(–muted); cursor: pointer;
+border: none; background: none; font-family: ‘Instrument Sans’, sans-serif; gap: 3px;
 }
 .nav-btn .icon { font-size: 1.1rem; }
-.nav-btn.active { color: var(--accent); }
+.nav-btn.active { color: var(–accent); }
 
 .view { display: none; padding: 16px; }
 .view.active { display: block; }
 
 .sec-title {
-  font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 700;
-  margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+font-family: ‘Fraunces’, serif; font-size: 1.05rem; font-weight: 700;
+margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
 }
-.sec-title::after { content:''; flex:1; height:1px; background:var(--border2); }
+.sec-title::after { content:’’; flex:1; height:1px; background:var(–border2); }
 
 /* CARDS & FORMS */
-.card { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.card { background: var(–surface); border: 1px solid var(–border2); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.card-title { font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.card-title { font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: var(–muted); }
 
 .field { margin-bottom: 10px; }
-.field label { display: block; font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.field label { display: block; font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
 .field input, .field select, .field textarea {
-  width: 100%; font-family: 'Instrument Sans', sans-serif; font-size: 0.9rem;
-  padding: 10px 13px; border: 1.5px solid var(--border2);
-  background: var(--surface2); color: var(--ink); border-radius: 8px; outline: none;
-  -webkit-appearance: none; transition: border-color 0.2s;
+width: 100%; font-family: ‘Instrument Sans’, sans-serif; font-size: 0.9rem;
+padding: 10px 13px; border: 1.5px solid var(–border2);
+background: var(–surface2); color: var(–ink); border-radius: 8px; outline: none;
+-webkit-appearance: none; transition: border-color 0.2s;
 }
 .field textarea { resize: vertical; line-height: 1.6; }
-.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(–accent); }
+.field input::placeholder, .field textarea::placeholder { color: var(–muted); }
 
-.btn { font-family: 'Instrument Sans', sans-serif; font-size: 0.78rem; font-weight: 600; padding: 11px 16px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; }
-.btn-accent { background: var(--accent); color: #000; width: 100%; }
+.btn { font-family: ‘Instrument Sans’, sans-serif; font-size: 0.78rem; font-weight: 600; padding: 11px 16px; border-radius: 8px; border: none; cursor: pointer; transition: all 0.15s; }
+.btn-accent { background: var(–accent); color: #000; width: 100%; }
 .btn-accent:active { background: #c98e1e; }
-.btn-ghost { background: none; color: var(--muted); border: 1.5px solid var(--border2); }
-.btn-ghost:active { border-color: var(--accent); color: var(--accent); }
-.btn-danger { background: none; color: var(--red); border: 1.5px solid var(--red); }
+.btn-ghost { background: none; color: var(–muted); border: 1.5px solid var(–border2); }
+.btn-ghost:active { border-color: var(–accent); color: var(–accent); }
+.btn-danger { background: none; color: var(–red); border: 1.5px solid var(–red); }
 .btn-sm { font-size: 0.7rem; padding: 7px 11px; }
-.btn-green { background: var(--accent2); color: #fff; width: 100%; }
+.btn-green { background: var(–accent2); color: #fff; width: 100%; }
 
 /* DISH LIST */
 .dish-item {
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+background: var(–surface2); border: 1px solid var(–border); border-radius: 10px;
+padding: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer;
 }
-.dish-item:active { border-color: var(--accent); }
+.dish-item:active { border-color: var(–accent); }
 .dish-info { flex: 1; min-width: 0; }
 .dish-name { font-size: 0.9rem; font-weight: 500; margin-bottom: 3px; }
-.dish-macros { font-size: 0.66rem; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
-.macro-tag { padding: 2px 5px; border-radius: 4px; background: var(--surface); }
-.macro-tag.prot { color: #6db4e8; } .macro-tag.carb { color: var(--accent); }
-.macro-tag.fat { color: #e87b6d; } .macro-tag.kcal { color: var(--muted); }
+.dish-macros { font-size: 0.66rem; color: var(–muted); display: flex; gap: 6px; flex-wrap: wrap; }
+.macro-tag { padding: 2px 5px; border-radius: 4px; background: var(–surface); }
+.macro-tag.prot { color: #6db4e8; } .macro-tag.carb { color: var(–accent); }
+.macro-tag.fat { color: #e87b6d; } .macro-tag.kcal { color: var(–muted); }
 
 /* INGREDIENT BLOCK */
-.ing-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.ing-block { background: var(–surface2); border: 1px solid var(–border); border-radius: 10px; padding: 12px; margin-bottom: 8px; }
 .ing-top { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 8px; }
 .ing-top .field { flex: 1; margin-bottom: 0; }
 .ing-cat-btn {
-  font-size: 0.7rem; font-weight: 600; padding: 10px 11px;
-  background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent); border-radius: 8px;
-  cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: 'Instrument Sans', sans-serif;
+font-size: 0.7rem; font-weight: 600; padding: 10px 11px;
+background: var(–surface); color: var(–accent); border: 1.5px solid var(–accent); border-radius: 8px;
+cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: ‘Instrument Sans’, sans-serif;
 }
-.ing-cat-btn.confirmed { background: rgba(74,158,107,0.15); color: var(--accent2); border-color: var(--accent2); }
+.ing-cat-btn.confirmed { background: rgba(74,158,107,0.15); color: var(–accent2); border-color: var(–accent2); }
 .ing-bottom { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; }
 .ing-bottom .field { margin-bottom: 0; }
-.ing-del { background: none; border: 1.5px solid var(--border); color: var(--muted); font-size: 0.78rem; cursor: pointer; padding: 9px 10px; border-radius: 8px; }
-.ing-del:active { color: var(--red); border-color: var(--red); }
+.ing-del { background: none; border: 1.5px solid var(–border); color: var(–muted); font-size: 0.78rem; cursor: pointer; padding: 9px 10px; border-radius: 8px; }
+.ing-del:active { color: var(–red); border-color: var(–red); }
 .ing-result { font-size: 0.68rem; margin-top: 6px; padding: 7px 9px; border-radius: 6px; }
-.ing-result.found { color: var(--accent2); background: rgba(74,158,107,0.1); }
-.ing-result.notfound { color: var(--muted); background: var(--surface); }
+.ing-result.found { color: var(–accent2); background: rgba(74,158,107,0.1); }
+.ing-result.notfound { color: var(–muted); background: var(–surface); }
 
 /* MACRO PREVIEW */
-.macro-preview { background: var(--surface2); border-radius: 8px; padding: 11px 13px; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.macro-preview { background: var(–surface2); border-radius: 8px; padding: 11px 13px; margin-bottom: 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 
 /* WEEK VIEW */
-.week-bar { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 13px 16px; margin-bottom: 12px; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; text-align: center; }
-.wbar-val { font-family: 'Fraunces', serif; font-size: 1.15rem; color: var(--accent); display: block; }
-.wbar-lbl { font-size: 0.54rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); display: block; margin-top: 1px; }
+.week-bar { background: var(–surface); border: 1px solid var(–border2); border-radius: 12px; padding: 13px 16px; margin-bottom: 12px; display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; text-align: center; }
+.wbar-val { font-family: ‘Fraunces’, serif; font-size: 1.15rem; color: var(–accent); display: block; }
+.wbar-lbl { font-size: 0.54rem; letter-spacing: 1px; text-transform: uppercase; color: var(–muted); display: block; margin-top: 1px; }
 
 .day-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
 .day-scroll::-webkit-scrollbar { display: none; }
-.day-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--muted); transition: all 0.15s; }
-.day-chip.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-.day-chip .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); margin-left: 4px; vertical-align: middle; }
+.day-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: 1.5px solid var(–border2); background: var(–surface2); color: var(–muted); transition: all 0.15s; }
+.day-chip.active { background: var(–accent); color: #000; border-color: var(–accent); font-weight: 600; }
+.day-chip .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(–accent2); margin-left: 4px; vertical-align: middle; }
 
-.meal-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+.meal-card { background: var(–surface); border: 1px solid var(–border2); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
 .meal-card.breakfast { background: #1a1514; }
 .meal-card.lunch     { background: #1a1710; }
 .meal-card.snack     { background: #131518; }
 .meal-card.dinner    { background: #101a13; }
-.meal-card-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; border-bottom: 1px solid var(--border); }
+.meal-card-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; border-bottom: 1px solid var(–border); }
 .meal-label { font-size: 0.66rem; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
 .meal-card.breakfast .meal-label { color: #e8836d; }
-.meal-card.lunch     .meal-label { color: var(--accent); }
+.meal-card.lunch     .meal-label { color: var(–accent); }
 .meal-card.snack     .meal-label { color: #6db4e8; }
-.meal-card.dinner    .meal-label { color: var(--accent2); }
-.meal-add-btn { font-size: 0.62rem; padding: 5px 9px; border: 1px solid var(--border2); background: none; border-radius: 6px; cursor: pointer; font-family: 'Instrument Sans', sans-serif; color: var(--muted); }
-.meal-add-btn:active { border-color: var(--accent); color: var(--accent); }
+.meal-card.dinner    .meal-label { color: var(–accent2); }
+.meal-add-btn { font-size: 0.62rem; padding: 5px 9px; border: 1px solid var(–border2); background: none; border-radius: 6px; cursor: pointer; font-family: ‘Instrument Sans’, sans-serif; color: var(–muted); }
+.meal-add-btn:active { border-color: var(–accent); color: var(–accent); }
 .meal-dishes { padding: 9px 15px; min-height: 48px; display: flex; flex-direction: column; gap: 5px; }
-.meal-empty { font-size: 0.72rem; color: var(--border2); padding: 5px 0; }
+.meal-empty { font-size: 0.72rem; color: var(–border2); padding: 5px 0; }
 .meal-dish { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 7px; font-size: 0.83rem; }
 .meal-card.breakfast .meal-dish { background: rgba(232,131,109,0.07); }
 .meal-card.lunch     .meal-dish { background: rgba(232,163,39,0.07); }
 .meal-card.snack     .meal-dish { background: rgba(109,180,232,0.07); }
 .meal-card.dinner    .meal-dish { background: rgba(74,158,107,0.07); }
 .meal-dish-name { flex: 1; }
-.meal-dish-cal { font-size: 0.63rem; color: var(--muted); }
-.meal-dish-del { background: none; border: none; color: var(--border2); font-size: 0.78rem; cursor: pointer; padding: 2px 5px; font-family: 'Instrument Sans', sans-serif; }
+.meal-dish-cal { font-size: 0.63rem; color: var(–muted); }
+.meal-dish-del { background: none; border: none; color: var(–border2); font-size: 0.78rem; cursor: pointer; padding: 2px 5px; font-family: ‘Instrument Sans’, sans-serif; }
 .person-badge { display: inline-block; font-size: 0.58rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 5px; }
 .person-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-.person-tab { padding: 6px 14px; border-radius: 16px; font-size: 0.7rem; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--muted); cursor: pointer; font-family: 'Instrument Sans', sans-serif; }
+.person-tab { padding: 6px 14px; border-radius: 16px; font-size: 0.7rem; border: 1.5px solid var(–border2); background: var(–surface2); color: var(–muted); cursor: pointer; font-family: ‘Instrument Sans’, sans-serif; }
 .person-tab.active { font-weight: 600; }
 
 /* SHOPPING */
 .shop-section { margin-bottom: 18px; }
-.shop-section-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 7px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-.shop-item { display: flex; align-items: center; gap: 11px; padding: 11px 13px; background: var(--surface2); border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: opacity 0.2s; }
+.shop-section-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(–muted); padding: 7px 0; border-bottom: 1px solid var(–border); margin-bottom: 8px; }
+.shop-item { display: flex; align-items: center; gap: 11px; padding: 11px 13px; background: var(–surface2); border-radius: 8px; margin-bottom: 5px; cursor: pointer; transition: opacity 0.2s; }
 .shop-item.checked { opacity: 0.32; }
-.shop-item.manual { border-left: 2px solid var(--accent2); }
-.shop-check { width: 19px; height: 19px; border-radius: 50%; border: 2px solid var(--border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; transition: all 0.15s; }
-.shop-item.checked .shop-check { background: var(--accent2); border-color: var(--accent2); }
-.shop-name { flex: 1; font-size: 0.86rem; } .shop-qty { font-size: 0.72rem; color: var(--muted); }
-.shop-del { background: none; border: none; color: var(--border2); font-size: 0.8rem; cursor: pointer; padding: 4px 6px; flex-shrink: 0; }
-.shop-del:active { color: var(--red); }
-.filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 16px; font-size: 0.68rem; border: 1.5px solid var(--border2); background: var(--surface2); color: var(--muted); cursor: pointer; white-space: nowrap; font-family: 'Instrument Sans', sans-serif; }
-.filter-chip.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+.shop-item.manual { border-left: 2px solid var(–accent2); }
+.shop-check { width: 19px; height: 19px; border-radius: 50%; border: 2px solid var(–border2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; transition: all 0.15s; }
+.shop-item.checked .shop-check { background: var(–accent2); border-color: var(–accent2); }
+.shop-name { flex: 1; font-size: 0.86rem; } .shop-qty { font-size: 0.72rem; color: var(–muted); }
+.shop-del { background: none; border: none; color: var(–border2); font-size: 0.8rem; cursor: pointer; padding: 4px 6px; flex-shrink: 0; }
+.shop-del:active { color: var(–red); }
+.filter-chip { flex-shrink: 0; padding: 5px 12px; border-radius: 16px; font-size: 0.68rem; border: 1.5px solid var(–border2); background: var(–surface2); color: var(–muted); cursor: pointer; white-space: nowrap; font-family: ‘Instrument Sans’, sans-serif; }
+.filter-chip.active { background: var(–accent); color: #000; border-color: var(–accent); font-weight: 600; }
 
 /* HISTORY */
-.hist-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 9px; overflow: hidden; }
-.hist-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.hist-card { background: var(–surface2); border: 1px solid var(–border); border-radius: 10px; margin-bottom: 9px; overflow: hidden; }
+.hist-head { display: flex; align-items: center; justify-content: space-between; padding: 11px 15px; background: var(–surface); border-bottom: 1px solid var(–border); }
 .hist-date { font-size: 0.83rem; font-weight: 600; }
-.hist-badges { display: flex; gap: 9px; font-size: 0.63rem; color: var(--muted); }
+.hist-badges { display: flex; gap: 9px; font-size: 0.63rem; color: var(–muted); }
 .hist-body { padding: 11px 15px; }
-.hist-dishes { font-size: 0.76rem; color: var(--muted); line-height: 1.9; }
+.hist-dishes { font-size: 0.76rem; color: var(–muted); line-height: 1.9; }
 
 /* STATS */
 .kpi-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 18px; }
-.kpi { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
-.kpi-val { font-family: 'Fraunces', serif; font-size: 1.7rem; color: var(--accent); display: block; }
-.kpi-lbl { font-size: 0.56rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(--muted); margin-top: 3px; display: block; }
+.kpi { background: var(–surface2); border: 1px solid var(–border); border-radius: 10px; padding: 14px; text-align: center; }
+.kpi-val { font-family: ‘Fraunces’, serif; font-size: 1.7rem; color: var(–accent); display: block; }
+.kpi-lbl { font-size: 0.56rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(–muted); margin-top: 3px; display: block; }
 .bar-row { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
 .bar-lbl { font-size: 0.76rem; width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-track { flex: 1; height: 6px; background: var(--border2); border-radius: 3px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.5s ease; }
-.bar-cnt { font-size: 0.68rem; color: var(--muted); width: 28px; text-align: right; }
+.bar-track { flex: 1; height: 6px; background: var(–border2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; background: var(–accent); transition: width 0.5s ease; }
+.bar-cnt { font-size: 0.68rem; color: var(–muted); width: 28px; text-align: right; }
 
 /* MODALS */
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: flex-end; }
 .overlay.open { display: flex; }
-.sheet { background: var(--surface); width: 100%; border-radius: 18px 18px 0 0; padding: 18px 18px 46px; max-height: 80vh; overflow-y: auto; animation: up 0.22s ease; }
+.sheet { background: var(–surface); width: 100%; border-radius: 18px 18px 0 0; padding: 18px 18px 46px; max-height: 80vh; overflow-y: auto; animation: up 0.22s ease; }
 @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.sheet-handle { width: 34px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 16px; }
-.sheet-title { font-family: 'Fraunces', serif; font-size: 1.05rem; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-.sheet-close { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; }
+.sheet-handle { width: 34px; height: 4px; background: var(–border2); border-radius: 2px; margin: 0 auto 16px; }
+.sheet-title { font-family: ‘Fraunces’, serif; font-size: 1.05rem; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.sheet-close { background: none; border: none; color: var(–muted); font-size: 1.1rem; cursor: pointer; }
 
-.picker-item { display: flex; align-items: center; gap: 11px; padding: 13px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 7px; cursor: pointer; }
-.picker-item:active { border-color: var(--accent); }
+.picker-item { display: flex; align-items: center; gap: 11px; padding: 13px; background: var(–surface2); border: 1px solid var(–border); border-radius: 10px; margin-bottom: 7px; cursor: pointer; }
+.picker-item:active { border-color: var(–accent); }
 .picker-item.used { opacity: 0.3; pointer-events: none; }
-.picker-macros { font-size: 0.63rem; color: var(--muted); margin-top: 2px; }
+.picker-macros { font-size: 0.63rem; color: var(–muted); margin-top: 2px; }
 
 /* CATEGORY PICKER */
 .cat-group { margin-bottom: 14px; }
-.cat-group-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.cat-group-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(–muted); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(–border); }
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.cat-item { padding: 11px 12px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer; transition: border-color 0.15s; }
-.cat-item:active { border-color: var(--accent2); }
+.cat-item { padding: 11px 12px; background: var(–surface2); border: 1.5px solid var(–border); border-radius: 9px; cursor: pointer; transition: border-color 0.15s; }
+.cat-item:active { border-color: var(–accent2); }
 .cat-item-saved { background: rgba(74,158,107,0.08); border-color: rgba(74,158,107,0.3); position: relative; }
-.cat-item-saved .cat-item-name::before { content: '★ '; color: var(--accent2); font-size: 0.75rem; }
-.cat-item-del { position: absolute; top: 6px; right: 6px; background: none; border: none; color: var(--muted); font-size: 0.7rem; cursor: pointer; padding: 2px 5px; font-family: 'Instrument Sans', sans-serif; }
-.cat-item-del:active { color: var(--red); }
-.save-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 8px; margin-top: 10px; cursor: pointer; font-size: 0.82rem; }
-.save-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent2); flex-shrink: 0; }
+.cat-item-saved .cat-item-name::before { content: ’★ ’; color: var(–accent2); font-size: 0.75rem; }
+.cat-item-del { position: absolute; top: 6px; right: 6px; background: none; border: none; color: var(–muted); font-size: 0.7rem; cursor: pointer; padding: 2px 5px; font-family: ‘Instrument Sans’, sans-serif; }
+.cat-item-del:active { color: var(–red); }
+.save-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(–surface2); border-radius: 8px; margin-top: 10px; cursor: pointer; font-size: 0.82rem; }
+.save-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(–accent2); flex-shrink: 0; }
 
-.additive-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; background:rgba(232,163,39,0.12); border:1px solid rgba(232,163,39,0.3); font-size:0.68rem; color:var(--accent); }
-.additive-chip button { background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.75rem; padding:0 1px; line-height:1; }
-.additive-row { padding:8px 12px; font-size:0.78rem; cursor:pointer; border-bottom:1px solid var(--border); }
+.additive-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; background:rgba(232,163,39,0.12); border:1px solid rgba(232,163,39,0.3); font-size:0.68rem; color:var(–accent); }
+.additive-chip button { background:none; border:none; color:var(–accent); cursor:pointer; font-size:0.75rem; padding:0 1px; line-height:1; }
+.additive-row { padding:8px 12px; font-size:0.78rem; cursor:pointer; border-bottom:1px solid var(–border); }
 .additive-row:last-child { border-bottom:none; }
-.additive-row:hover, .additive-row:active { background:var(--surface2); }
-.additive-code { font-weight:600; color:var(--accent); margin-right:6px; }
-.additive-name { color:var(--muted); font-size:0.7rem; }
+.additive-row:hover, .additive-row:active { background:var(–surface2); }
+.additive-code { font-weight:600; color:var(–accent); margin-right:6px; }
+.additive-name { color:var(–muted); font-size:0.7rem; }
 
 /* NUTRI SCORE */
 .ns-bar { display:flex; gap:3px; flex-wrap:wrap; margin-top:5px; }
@@ -231,24 +232,81 @@ header {
 .ns-pill.yellow .ns-dot { background:#e8a327; }
 .ns-pill.red .ns-dot    { background:#d44f3a; }
 .variant-ing { margin-bottom:14px; }
-.variant-ing-name { font-size:0.62rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
-.variant-opt { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--surface2); border:1.5px solid var(--border); border-radius:9px; margin-bottom:5px; cursor:pointer; transition:border-color 0.15s; }
-.variant-opt.selected { border-color:var(--accent); background:rgba(232,163,39,0.07); }
-.variant-opt-radio { width:16px; height:16px; border-radius:50%; border:2px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-.variant-opt.selected .variant-opt-radio { border-color:var(--accent); background:var(--accent); }
-.variant-opt.selected .variant-opt-radio::after { content:''; width:6px; height:6px; border-radius:50%; background:#000; }
+.variant-ing-name { font-size:0.62rem; letter-spacing:1.5px; text-transform:uppercase; color:var(–muted); margin-bottom:7px; }
+.variant-opt { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(–surface2); border:1.5px solid var(–border); border-radius:9px; margin-bottom:5px; cursor:pointer; transition:border-color 0.15s; }
+.variant-opt.selected { border-color:var(–accent); background:rgba(232,163,39,0.07); }
+.variant-opt-radio { width:16px; height:16px; border-radius:50%; border:2px solid var(–border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.variant-opt.selected .variant-opt-radio { border-color:var(–accent); background:var(–accent); }
+.variant-opt.selected .variant-opt-radio::after { content:’’; width:6px; height:6px; border-radius:50%; background:#000; }
 .variant-opt-info { flex:1; }
 .variant-opt-name { font-size:0.85rem; font-weight:500; }
-.variant-opt-sub { font-size:0.65rem; color:var(--muted); margin-top:1px; }
+.variant-opt-sub { font-size:0.65rem; color:var(–muted); margin-top:1px; }
 
 /* LOADING SPINNER */
-.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(–border2); border-top-color: var(–accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* TOAST */
-.toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border2); color: var(--ink); padding: 10px 18px; border-radius: 20px; font-size: 0.8rem; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+.toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: var(–surface); border: 1px solid var(–border2); color: var(–ink); padding: 10px 18px; border-radius: 20px; font-size: 0.8rem; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
+
+/* LANDING OPTIONS */
+.landing-options { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.landing-card {
+display: flex; align-items: center; gap: 14px;
+background: var(–surface); border: 1.5px solid var(–border2); border-radius: 14px;
+padding: 18px 16px; cursor: pointer; transition: all 0.15s;
+}
+.landing-card:active { border-color: var(–accent); background: rgba(232,163,39,0.06); }
+.landing-icon { font-size: 1.6rem; flex-shrink: 0; width: 40px; text-align: center; }
+.landing-text { flex: 1; }
+.landing-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; }
+.landing-sub { font-size: 0.7rem; color: var(–muted); }
+.landing-arrow { color: var(–muted); font-size: 1.1rem; flex-shrink: 0; }
+
+/* SUB-HEADER back button */
+.sub-header { padding: 10px 0 14px; }
+.back-btn {
+background: none; border: none; color: var(–accent); font-family: ‘Instrument Sans’, sans-serif;
+font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 6px 0; letter-spacing: 0.3px;
+}
+.back-btn:active { opacity: 0.7; }
+
+/* WEEK SELECTOR */
+.week-selector {
+display: flex; align-items: center; justify-content: space-between;
+background: var(–surface); border: 1px solid var(–border2); border-radius: 12px;
+padding: 10px 14px; margin-bottom: 14px;
+}
+.week-nav-btn {
+background: none; border: 1.5px solid var(–border2); color: var(–ink); font-size: 1.1rem;
+width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex;
+align-items: center; justify-content: center; font-family: ‘Instrument Sans’, sans-serif;
+transition: all 0.15s;
+}
+.week-nav-btn:active { border-color: var(–accent); color: var(–accent); }
+.week-selector-label {
+font-family: ‘Fraunces’, serif; font-size: 0.95rem; font-weight: 700; color: var(–ink);
+text-align: center; flex: 1;
+}
+.week-selector-label span { display: block; font-family: ‘Instrument Sans’, sans-serif; font-size: 0.62rem; color: var(–muted); font-weight: 400; margin-top: 1px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* STATS CHARTS */
+.stats-chart-wrap { background: var(–surface2); border: 1px solid var(–border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.stats-chart-title { font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase; color: var(–muted); margin-bottom: 12px; }
+.bar-chart { display: flex; flex-direction: column; gap: 6px; }
+.bar-chart-row { display: flex; align-items: center; gap: 8px; }
+.bar-chart-label { font-size: 0.68rem; color: var(–muted); width: 60px; flex-shrink: 0; text-align: right; }
+.bar-chart-track { flex: 1; height: 8px; background: var(–border); border-radius: 4px; overflow: hidden; }
+.bar-chart-fill { height: 100%; border-radius: 4px; background: var(–accent); transition: width 0.6s ease; }
+.bar-chart-val { font-size: 0.68rem; color: var(–ink); width: 52px; flex-shrink: 0; }
+.stats-compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.stats-person-card { background: var(–surface2); border: 1px solid var(–border); border-radius: 10px; padding: 12px; text-align: center; }
+.stats-person-name { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(–muted); margin-bottom: 6px; }
+.stats-person-kcal { font-family: ‘Fraunces’, serif; font-size: 1.5rem; color: var(–accent); display: block; }
+.stats-person-sub { font-size: 0.62rem; color: var(–muted); margin-top: 2px; }
 </style>
+
 </head>
 <body>
 
@@ -261,29 +319,16 @@ header {
 </header>
 
 <!-- VIEWS -->
-<div class="view active" id="view-platos">
-  <br>
-  <div class="sec-title">Mis platos</div>
-  <div class="card" id="dish-form-card">
-    <div class="card-header">
-      <span class="card-title" id="form-mode-label">Nuevo plato</span>
-      <button class="btn btn-ghost btn-sm" id="cancel-edit-btn" style="display:none" onclick="cancelEdit()">Cancelar</button>
-    </div>
-    <div class="field"><label>Nombre del plato</label><input id="f-name" type="text" placeholder="Ej: Pollo al horno con verduras" maxlength="50"/></div>
-    <div style="margin-bottom:8px; font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
-    <div id="ing-list"></div>
-    <button class="btn btn-ghost btn-sm" onclick="addIngRow()" style="margin-bottom:12px;width:100%">+ Ingrediente</button>
-    <div class="macro-preview" id="macro-preview">
-      <span style="font-size:0.7rem;color:var(--muted)">Identifica ingredientes con IA para calcular macros</span>
-    </div>
-    <div class="field"><label>Preparación</label><textarea id="f-prep" placeholder="Describe cómo preparar el plato…" rows="4"></textarea></div>
-    <button class="btn btn-accent" id="save-dish-btn" onclick="saveDish()">Guardar plato</button>
-  </div>
-  <div id="dish-list"></div>
-</div>
 
-<div class="view" id="view-semana">
+<div class="view" id="view-semana" style="padding:16px">
   <br>
+  <!-- SELECTOR DE SEMANA -->
+  <div class="week-selector">
+    <button class="week-nav-btn" onclick="navigateWeek(-1)">‹</button>
+    <div class="week-selector-label" id="week-selector-label">Semana actual</div>
+    <button class="week-nav-btn" onclick="navigateWeek(1)">›</button>
+  </div>
+  <div id="week-selector-dropdown" style="display:none"></div>
   <!-- Person tabs -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
     <div class="person-tabs" id="person-tabs"></div>
@@ -292,10 +337,13 @@ header {
   <div class="week-bar" id="week-bar"></div>
   <div class="day-scroll" id="day-scroll"></div>
   <div id="meals-container"></div>
-  <button class="btn btn-green" style="margin-top:14px" onclick="saveWeek()">💾 Guardar semana en historial</button>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <button class="btn btn-green" style="flex:1" onclick="saveWeek()">💾 Guardar semana</button>
+    <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">📋 Historial</button>
+  </div>
 </div>
 
-<div class="view" id="view-compra">
+<div class="view" id="view-compra" style="padding:16px">
   <br>
   <!-- Añadir producto manual -->
   <div class="card" style="margin-bottom:14px">
@@ -307,6 +355,7 @@ header {
   </div>
 
   <!-- Filtros de categoría -->
+
   <div id="shop-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:8px"></div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -317,161 +366,253 @@ header {
   <div id="shop-content"></div>
 </div>
 
-<div class="view" id="view-historial">
-  <br>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-    <div class="sec-title" style="margin-bottom:0;flex:1">Historial</div>
-    <button class="btn btn-danger btn-sm" onclick="clearHistory()">Borrar</button>
+<!-- HISTORIAL como overlay, no como view propia -->
+
+<div class="overlay" id="hist-overlay" onclick="closeHistOverlay(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">
+      <span>Historial de semanas</span>
+      <button class="sheet-close" onclick="closeHistOverlay()">✕</button>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:14px">Toca una semana para cargarla en el planificador.</div>
+    <div id="hist-list"></div>
+    <button class="btn btn-danger btn-sm" style="margin-top:14px;width:100%" onclick="clearHistory()">🗑 Borrar historial</button>
   </div>
-  <div id="hist-list"></div>
 </div>
 
-<div class="view" id="view-stats">
+<div class="view" id="view-stats" style="padding:16px">
   <br>
+  <div class="sec-title">Estadísticas</div>
+  <!-- Filtros stats -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="stats-person-filter"></div>
   <div id="stats-content"></div>
 </div>
 
-<div class="view" id="view-biblioteca">
-  <br>
-  <div class="sec-title">Ingredientes</div>
-
+<div class="view" id="view-biblioteca" style="padding:16px">
+  <!-- SUB-VISTA: landing -->
+  <div id="bib-landing">
+    <br>
+    <div class="sec-title">Ingredientes</div>
+    <div class="landing-options">
+      <div class="landing-card" onclick="showBibSub('nueva')">
+        <span class="landing-icon">➕</span>
+        <div class="landing-text">
+          <div class="landing-title">Introducir ingrediente nuevo</div>
+          <div class="landing-sub">Añade nutrición, precio y categoría</div>
+        </div>
+        <span class="landing-arrow">→</span>
+      </div>
+      <div class="landing-card" onclick="showBibSub('lista')">
+        <span class="landing-icon">⭐</span>
+        <div class="landing-text">
+          <div class="landing-title">Consultar base de datos</div>
+          <div class="landing-sub">Busca y edita ingredientes guardados</div>
+        </div>
+        <span class="landing-arrow">→</span>
+      </div>
+    </div>
+  </div>
+  <!-- SUB-VISTA: nuevo ingrediente -->
+  <div id="bib-nueva" style="display:none">
+    <div class="sub-header">
+      <button class="back-btn" onclick="showBibLanding()">← Ingredientes</button>
+    </div>
   <div class="card" id="lib-form-card">
     <div class="card-header">
       <span class="card-title" id="lib-form-label">Nuevo ingrediente</span>
       <button class="btn btn-ghost btn-sm" id="lib-cancel-btn" style="display:none" onclick="cancelLibEdit()">Cancelar</button>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div class="field"><label>Nombre</label><input id="lib-name" type="text" placeholder="Pechuga de pollo" maxlength="60"/></div>
-      <div class="field" style="position:relative">
-        <label>Marca (opcional)</label>
-        <input id="lib-brand" type="text" placeholder="Mercadona, Hacendado…" maxlength="60"
-          oninput="filterBrands(this.value)" onfocus="filterBrands(this.value)" autocomplete="off"/>
-        <div id="brand-dropdown" style="display:none;position:absolute;left:0;right:0;z-index:100;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:2px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)"></div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Categoría de compra</label>
-      <select id="lib-cat">
-        <option value="">— Sin categoría —</option>
-        <option value="Pollo / Ave">🍗 Pollo / Ave</option>
-        <option value="Pollo / Ave">🍗 Pollo / Ave</option>
-        <option value="Carne">🥩 Carne</option>
-        <option value="Pescado">🐟 Pescado</option>
-        <option value="Fruta">🍎 Fruta</option>
-        <option value="Verdura">🥦 Verdura</option>
-        <option value="Lácteos">🥛 Lácteos</option>
-        <option value="Huevos">🥚 Huevos</option>
-        <option value="Despensa">🫙 Despensa</option>
-        <option value="Congelado">🧊 Congelado</option>
-        <option value="Pan y cereales">🍞 Pan y cereales</option>
-        <option value="Bebidas">🧃 Bebidas</option>
-        <option value="Higiene">🧴 Higiene</option>
-        <option value="Otros">📦 Otros</option>
-      </select>
-    </div>
-
-    <div style="font-size:0.62rem;color:var(--muted);margin:4px 0 10px;letter-spacing:1px;text-transform:uppercase">Valores nutricionales por 100g / 100ml</div>
-
-    <!-- Macros básicas -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
-      <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="lib-k" placeholder="165" min="0"/></div>
-      <div class="field" style="margin-bottom:0"><label>kJ (opcional)</label><input type="number" id="lib-kj" placeholder="690" min="0"/></div>
-    </div>
-
-    <!-- Proteínas -->
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:6px">
-      <div class="field" style="margin-bottom:0"><label>Proteínas (g)</label><input type="number" id="lib-p" placeholder="31" min="0"/></div>
-    </div>
-
-    <!-- Hidratos -->
-    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
-      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Hidratos de carbono</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-c" placeholder="0" min="0"/></div>
-        <div class="field" style="margin-bottom:0"><label>— de los cuales azúcares (g)</label><input type="number" id="lib-sugar" placeholder="0" min="0"/></div>
-      </div>
-    </div>
-
-    <!-- Grasas -->
-    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
-      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Grasas</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-f" placeholder="3.6" min="0"/></div>
-        <div class="field" style="margin-bottom:0"><label>— de las cuales saturadas (g)</label><input type="number" id="lib-sat" placeholder="0" min="0"/></div>
-      </div>
-    </div>
-
-    <!-- Sal y fibra -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div class="field" style="margin-bottom:0"><label>Sal (g)</label><input type="number" id="lib-salt" placeholder="0.1" min="0"/></div>
-      <div class="field" style="margin-bottom:0"><label>Fibra (g)</label><input type="number" id="lib-fiber" placeholder="0" min="0"/></div>
-    </div>
-
-    <!-- Precio -->
-    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:12px">
-      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Precio</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field" style="margin-bottom:0"><label>Precio (€)</label><input type="number" id="lib-price" placeholder="1.99" min="0" step="0.01"/></div>
-        <div class="field" style="margin-bottom:0">
-          <label>Por</label>
-          <select id="lib-price-unit">
-            <option value="unidad">unidad</option>
-            <option value="kg">kg</option>
-            <option value="100g">100g</option>
-            <option value="g">g</option>
-            <option value="l">litro</option>
-            <option value="100ml">100ml</option>
-            <option value="ml">ml</option>
-            <option value="brick">brick</option>
-            <option value="bote">bote/tarro</option>
-            <option value="bolsa">bolsa</option>
-            <option value="docena">docena</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div class="field" style="margin-bottom:0">
-        <label>% carne / contenido real</label>
-        <input type="number" id="lib-meat-pct" placeholder="Ej: 84" min="0" max="100" step="0.1"/>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Para cárnicos, embutidos, etc.</div>
-      </div>
-      <div class="field" style="margin-bottom:0">
-        <label>Aditivos</label>
-        <input type="text" id="lib-additives-search" placeholder="Buscar E250, colorante…" autocomplete="off"
-          oninput="filterAdditives(this.value)" onfocus="showAdditivesList()" />
-        <div id="additives-dropdown" style="display:none;position:relative;z-index:50;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:4px;max-height:160px;overflow-y:auto"></div>
-        <div id="additives-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
-        <input type="hidden" id="lib-additives"/>
-      </div>
-    </div>
-
-    <div class="field"><label>Observaciones</label><textarea id="lib-obs" placeholder="Sin gluten, ecológico, alérgenos…" rows="2" style="resize:none"></textarea></div>
-
-    <button class="btn btn-accent" id="lib-save-btn" onclick="saveLibIngredient()">Guardar ingrediente</button>
+```
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+  <div class="field"><label>Nombre</label><input id="lib-name" type="text" placeholder="Pechuga de pollo" maxlength="60"/></div>
+  <div class="field" style="position:relative">
+    <label>Marca (opcional)</label>
+    <input id="lib-brand" type="text" placeholder="Mercadona, Hacendado…" maxlength="60"
+      oninput="filterBrands(this.value)" onfocus="filterBrands(this.value)" autocomplete="off"/>
+    <div id="brand-dropdown" style="display:none;position:absolute;left:0;right:0;z-index:100;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:2px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)"></div>
   </div>
-
-  <div class="field" style="margin-bottom:12px">
-    <input id="lib-search" type="text" placeholder="Buscar ingrediente…" oninput="renderLibList()"/>
-  </div>
-  <div id="lib-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:8px"></div>
-  <div id="lib-list"></div>
 </div>
 
-<div class="view" id="view-recetas">
-  <br>
-  <div class="sec-title">Recetas</div>
-  <div class="field" style="margin-bottom:12px">
-    <input id="recetas-search" type="text" placeholder="Buscar receta…" oninput="renderRecetas()"/>
+<div class="field">
+  <label>Categoría de compra</label>
+  <select id="lib-cat">
+    <option value="">— Sin categoría —</option>
+    <option value="Pollo / Ave">🍗 Pollo / Ave</option>
+    <option value="Pollo / Ave">🍗 Pollo / Ave</option>
+    <option value="Carne">🥩 Carne</option>
+    <option value="Pescado">🐟 Pescado</option>
+    <option value="Fruta">🍎 Fruta</option>
+    <option value="Verdura">🥦 Verdura</option>
+    <option value="Lácteos">🥛 Lácteos</option>
+    <option value="Huevos">🥚 Huevos</option>
+    <option value="Despensa">🫙 Despensa</option>
+    <option value="Congelado">🧊 Congelado</option>
+    <option value="Pan y cereales">🍞 Pan y cereales</option>
+    <option value="Bebidas">🧃 Bebidas</option>
+    <option value="Higiene">🧴 Higiene</option>
+    <option value="Otros">📦 Otros</option>
+  </select>
+</div>
+
+<div style="font-size:0.62rem;color:var(--muted);margin:4px 0 10px;letter-spacing:1px;text-transform:uppercase">Valores nutricionales por 100g / 100ml</div>
+
+<!-- Macros básicas -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+  <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="lib-k" placeholder="165" min="0"/></div>
+  <div class="field" style="margin-bottom:0"><label>kJ (opcional)</label><input type="number" id="lib-kj" placeholder="690" min="0"/></div>
+</div>
+
+<!-- Proteínas -->
+<div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:6px">
+  <div class="field" style="margin-bottom:0"><label>Proteínas (g)</label><input type="number" id="lib-p" placeholder="31" min="0"/></div>
+</div>
+
+<!-- Hidratos -->
+<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
+  <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Hidratos de carbono</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-c" placeholder="0" min="0"/></div>
+    <div class="field" style="margin-bottom:0"><label>— de los cuales azúcares (g)</label><input type="number" id="lib-sugar" placeholder="0" min="0"/></div>
   </div>
-  <div id="recetas-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:8px"></div>
-  <div id="recetas-list"></div>
+</div>
+
+<!-- Grasas -->
+<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
+  <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Grasas</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-f" placeholder="3.6" min="0"/></div>
+    <div class="field" style="margin-bottom:0"><label>— de las cuales saturadas (g)</label><input type="number" id="lib-sat" placeholder="0" min="0"/></div>
+  </div>
+</div>
+
+<!-- Sal y fibra -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+  <div class="field" style="margin-bottom:0"><label>Sal (g)</label><input type="number" id="lib-salt" placeholder="0.1" min="0"/></div>
+  <div class="field" style="margin-bottom:0"><label>Fibra (g)</label><input type="number" id="lib-fiber" placeholder="0" min="0"/></div>
+</div>
+
+<!-- Precio -->
+<div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:12px">
+  <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Precio</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div class="field" style="margin-bottom:0"><label>Precio (€)</label><input type="number" id="lib-price" placeholder="1.99" min="0" step="0.01"/></div>
+    <div class="field" style="margin-bottom:0">
+      <label>Por</label>
+      <select id="lib-price-unit">
+        <option value="unidad">unidad</option>
+        <option value="kg">kg</option>
+        <option value="100g">100g</option>
+        <option value="g">g</option>
+        <option value="l">litro</option>
+        <option value="100ml">100ml</option>
+        <option value="ml">ml</option>
+        <option value="brick">brick</option>
+        <option value="bote">bote/tarro</option>
+        <option value="bolsa">bolsa</option>
+        <option value="docena">docena</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+  <div class="field" style="margin-bottom:0">
+    <label>% carne / contenido real</label>
+    <input type="number" id="lib-meat-pct" placeholder="Ej: 84" min="0" max="100" step="0.1"/>
+    <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Para cárnicos, embutidos, etc.</div>
+  </div>
+  <div class="field" style="margin-bottom:0">
+    <label>Aditivos</label>
+    <input type="text" id="lib-additives-search" placeholder="Buscar E250, colorante…" autocomplete="off"
+      oninput="filterAdditives(this.value)" onfocus="showAdditivesList()" />
+    <div id="additives-dropdown" style="display:none;position:relative;z-index:50;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:4px;max-height:160px;overflow-y:auto"></div>
+    <div id="additives-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
+    <input type="hidden" id="lib-additives"/>
+  </div>
+</div>
+
+<div class="field"><label>Observaciones</label><textarea id="lib-obs" placeholder="Sin gluten, ecológico, alérgenos…" rows="2" style="resize:none"></textarea></div>
+
+<button class="btn btn-accent" id="lib-save-btn" onclick="saveLibIngredient()">Guardar ingrediente</button>
+```
+
+  </div>
+
+  </div>
+  <!-- SUB-VISTA: lista ingredientes -->
+  <div id="bib-lista" style="display:none">
+    <div class="sub-header">
+      <button class="back-btn" onclick="showBibLanding()">← Ingredientes</button>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <input id="lib-search" type="text" placeholder="Buscar ingrediente…" oninput="renderLibList()"/>
+    </div>
+    <div id="lib-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:8px"></div>
+    <div id="lib-list"></div>
+  </div>
+</div>
+<div class="view" id="view-recetas" style="padding:16px">
+  <!-- SUB-VISTA: landing -->
+  <div id="recetas-landing">
+    <br>
+    <div class="sec-title">Recetas</div>
+    <div class="landing-options">
+      <div class="landing-card" onclick="showRecetasSub('nueva')">
+        <span class="landing-icon">✏️</span>
+        <div class="landing-text">
+          <div class="landing-title">Introducir receta nueva</div>
+          <div class="landing-sub">Añade un plato con ingredientes y macros</div>
+        </div>
+        <span class="landing-arrow">→</span>
+      </div>
+      <div class="landing-card" onclick="showRecetasSub('lista')">
+        <span class="landing-icon">📖</span>
+        <div class="landing-text">
+          <div class="landing-title">Consultar base de datos</div>
+          <div class="landing-sub">Busca y edita recetas guardadas</div>
+        </div>
+        <span class="landing-arrow">→</span>
+      </div>
+    </div>
+  </div>
+  <!-- SUB-VISTA: nueva receta (form platos) -->
+  <div id="recetas-nueva" style="display:none">
+    <div class="sub-header">
+      <button class="back-btn" onclick="showRecetasLanding()">← Recetas</button>
+    </div>
+    <div class="card" id="dish-form-card">
+      <div class="card-header">
+        <span class="card-title" id="form-mode-label">Nuevo plato</span>
+        <button class="btn btn-ghost btn-sm" id="cancel-edit-btn" style="display:none" onclick="cancelEdit()">Cancelar</button>
+      </div>
+      <div class="field"><label>Nombre del plato</label><input id="f-name" type="text" placeholder="Ej: Pollo al horno con verduras" maxlength="50"/></div>
+      <div style="margin-bottom:8px; font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
+      <div id="ing-list"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addIngRow()" style="margin-bottom:12px;width:100%">+ Ingrediente</button>
+      <div class="macro-preview" id="macro-preview">
+        <span style="font-size:0.7rem;color:var(--muted)">Identifica ingredientes con IA para calcular macros</span>
+      </div>
+      <div class="field"><label>Preparación</label><textarea id="f-prep" placeholder="Describe cómo preparar el plato…" rows="4"></textarea></div>
+      <button class="btn btn-accent" id="save-dish-btn" onclick="saveDish()">Guardar plato</button>
+    </div>
+  </div>
+  <!-- SUB-VISTA: lista de recetas -->
+  <div id="recetas-lista" style="display:none">
+    <div class="sub-header">
+      <button class="back-btn" onclick="showRecetasLanding()">← Recetas</button>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <input id="recetas-search" type="text" placeholder="Buscar receta…" oninput="renderRecetas()"/>
+    </div>
+    <div id="recetas-cat-filter" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;margin-bottom:8px"></div>
+    <div id="recetas-list"></div>
+  </div>
 </div>
 
 <!-- VARIANTS MODAL -->
+
 <div class="overlay" id="variants-overlay" onclick="closeVariants(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -491,6 +632,7 @@ header {
 </div>
 
 <!-- PERSON CONFIG MODAL -->
+
 <div class="overlay" id="person-overlay" onclick="closePersonConfig(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -508,14 +650,15 @@ header {
 </div>
 
 <nav class="bottom-nav">
-  <button class="nav-btn active" onclick="switchView('platos')"   id="nav-platos"><span class="icon">🍽</span>Platos</button>
-  <button class="nav-btn" onclick="switchView('recetas')"          id="nav-recetas"><span class="icon">📖</span>Recetas</button>
+  <button class="nav-btn active" onclick="switchView('recetas')"   id="nav-recetas"><span class="icon">🍽</span>Recetas</button>
+  <button class="nav-btn" onclick="switchView('biblioteca')"       id="nav-biblioteca"><span class="icon">⭐</span>Ingredientes</button>
   <button class="nav-btn" onclick="switchView('semana')"           id="nav-semana"><span class="icon">📅</span>Semana</button>
   <button class="nav-btn" onclick="switchView('compra')"           id="nav-compra"><span class="icon">🛒</span>Compra</button>
-  <button class="nav-btn" onclick="switchView('biblioteca')"       id="nav-biblioteca"><span class="icon">⭐</span>Ingred.</button>
+  <button class="nav-btn" onclick="switchView('stats')"            id="nav-stats"><span class="icon">📊</span>Stats</button>
 </nav>
 
 <!-- CATEGORY PICKER MODAL -->
+
 <div class="overlay" id="cat-overlay" onclick="closeCat(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -528,6 +671,7 @@ header {
 </div>
 
 <!-- PICKER MODAL -->
+
 <div class="overlay" id="picker-overlay" onclick="closePicker(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -542,6 +686,7 @@ header {
 <div class="toast" id="toast"></div>
 
 <!-- FIREBASE -->
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, collection, onSnapshot, setDoc, getDoc, updateDoc, deleteDoc, getDocs, writeBatch }
@@ -691,6 +836,7 @@ let selPerson = 'all';
 let pickerTarget = null;
 let aiTarget = null;
 window._activeView = 'platos';
+window._weekOffset = 0;
 
 // Helpers
 const sk = (d,m,p='all') => `${d}-${m}-${p}`;
@@ -744,15 +890,47 @@ function switchView(v) {
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById(`view-${v}`).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`nav-${v}`).classList.add('active');
-  if (v==='semana')     renderSemana();
-  if (v==='recetas')    renderRecetas();
+  document.getElementById(`nav-${v}`)?.classList.add('active');
+  if (v==='semana')     { initWeekSelector(); renderSemana(); }
+  if (v==='recetas')    { showRecetasLanding(); }
   if (v==='compra')     renderCompra();
-  if (v==='historial')  renderHistorial();
   if (v==='stats')      renderStats();
-  if (v==='biblioteca') renderLibList();
+  if (v==='biblioteca') { showBibLanding(); }
 }
 window.switchView = switchView;
+
+// ── RECETAS SUB-VISTAS ──
+function showRecetasLanding() {
+  document.getElementById('recetas-landing').style.display = 'block';
+  document.getElementById('recetas-nueva').style.display = 'none';
+  document.getElementById('recetas-lista').style.display = 'none';
+}
+window.showRecetasLanding = showRecetasLanding;
+
+function showRecetasSub(sub) {
+  document.getElementById('recetas-landing').style.display = 'none';
+  document.getElementById('recetas-nueva').style.display = sub==='nueva' ? 'block' : 'none';
+  document.getElementById('recetas-lista').style.display = sub==='lista' ? 'block' : 'none';
+  if (sub==='lista') renderRecetas();
+}
+window.showRecetasSub = showRecetasSub;
+
+// ── BIBLIOTECA SUB-VISTAS ──
+function showBibLanding() {
+  document.getElementById('bib-landing').style.display = 'block';
+  document.getElementById('bib-nueva').style.display = 'none';
+  document.getElementById('bib-lista').style.display = 'none';
+  cancelLibEdit();
+}
+window.showBibLanding = showBibLanding;
+
+function showBibSub(sub) {
+  document.getElementById('bib-landing').style.display = 'none';
+  document.getElementById('bib-nueva').style.display = sub==='nueva' ? 'block' : 'none';
+  document.getElementById('bib-lista').style.display = sub==='lista' ? 'block' : 'none';
+  if (sub==='lista') renderLibList();
+}
+window.showBibSub = showBibSub;
 
 // ── PLATOS ──
 function addIngRow(val) {
@@ -1065,13 +1243,12 @@ async function saveDish() {
   const dish = { id, name, prep, ingredients: ings, macros };
   await window._saveDishToDb(dish);
 
-  if (editId) { cancelEdit(); toast('Plato actualizado'); }
+  if (editId) { cancelEdit(); toast('Plato actualizado'); showRecetasLanding(); }
   else {
     document.getElementById('f-name').value='';
     document.getElementById('f-prep').value='';
     ingRows=[]; renderIngRows();
-    document.getElementById('f-name').focus();
-    toast('Plato guardado');
+    toast('✅ Plato guardado — consulta tus recetas para verlo');
   }
 }
 window.saveDish = saveDish;
@@ -1147,7 +1324,10 @@ function calcWeekTotals() {
 }
 
 function renderSemana() {
-  renderPersonTabs(); renderWeekBar(); renderDayScroll(); renderMeals();
+  try { renderPersonTabs(); } catch(e) { console.warn('renderPersonTabs:', e); }
+  try { renderWeekBar(); }    catch(e) { console.warn('renderWeekBar:', e); }
+  try { renderDayScroll(); }  catch(e) { console.warn('renderDayScroll:', e); }
+  try { renderMeals(); }      catch(e) { console.warn('renderMeals:', e); }
 }
 window.renderSemana = renderSemana;
 
@@ -1171,14 +1351,53 @@ function renderWeekBar() {
     <div><span class="wbar-val">${(window._dishes||[]).length}</span><span class="wbar-lbl">platos</span></div>`;
 }
 
+function getWeekMonday(offset) {
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+// weekOffset: 0 = semana actual, -1 = anterior, +1 = siguiente
+
+function initWeekSelector() {
+  if (window._weekOffset === undefined) window._weekOffset = 0;
+  updateWeekSelectorLabel();
+}
+window.initWeekSelector = initWeekSelector;
+
+function updateWeekSelectorLabel() {
+  const mon = getWeekMonday(window._weekOffset);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  const fmt = d => d.toLocaleDateString('es-ES', {day:'numeric', month:'short'});
+  const isCurrentWeek = window._weekOffset === 0;
+  const label = document.getElementById('week-selector-label');
+  if (label) {
+    label.innerHTML = `${fmt(mon)} – ${fmt(sun)}<span>${isCurrentWeek ? 'Semana actual' : (window._weekOffset < 0 ? 'Semana pasada' : 'Próxima semana')}</span>`;
+  }
+}
+
+function navigateWeek(dir) {
+  window._weekOffset += dir;
+  updateWeekSelectorLabel();
+  renderDayScroll();
+  renderMeals();
+  renderWeekBar();
+}
+window.navigateWeek = navigateWeek;
+
 function renderDayScroll() {
+  const mon = getWeekMonday(window._weekOffset);
   document.getElementById('day-scroll').innerHTML = DAYS.map((day,i)=>{
+    const date = new Date(mon); date.setDate(mon.getDate()+i);
+    const dayNum = date.getDate();
     const pids = selPerson==='all'
       ? ['all',...(window._persons||[]).map(p=>p.id)]
       : ['all', selPerson];
     const has = MEALS.some(({id:m}) => pids.some(pid=>(window._week[sk(i,m,pid)]||[]).length>0));
     return `<div class="day-chip ${i===selDay?'active':''}" onclick="selDay=${i};renderSemana()">
-      ${day}${has?'<span class="dot"></span>':''}
+      ${day} <span style="font-weight:400;opacity:0.75">${dayNum}</span>${has?'<span class="dot"></span>':''}
     </div>`;
   }).join('');
 }
@@ -1474,7 +1693,7 @@ function renderHistorial() {
   const el=document.getElementById('hist-list');
   const history=window._history||[];
   if(!history.length){
-    el.innerHTML='<div class="empty">Aún no hay semanas guardadas.<br>Ve a Semana y pulsa guardar.</div>';
+    el.innerHTML='<div style="color:var(--muted);font-size:0.8rem;text-align:center;padding:20px 0">Aún no hay semanas guardadas.<br>Planifica y guarda tu primera semana.</div>';
     return;
   }
   el.innerHTML=history.map(h=>{
@@ -1483,12 +1702,13 @@ function renderHistorial() {
       (arr||[]).forEach(dish=>names.push('🍽 '+dish.name));
     });
     const unique=[...new Set(names)];
-    return `<div class="hist-card">
+    return `<div class="hist-card" onclick="loadHistWeek('${h.id}')">
       <div class="hist-head">
         <span class="hist-date">${h.label}</span>
         <div class="hist-badges">
           <span>${h.unique} platos</span>
           ${h.k?'<span>'+Math.round(h.k/7)+'kcal/d</span>':''}
+          <span style="color:var(--accent);font-size:0.65rem">Cargar →</span>
         </div>
       </div>
       <div class="hist-body">
@@ -1499,6 +1719,36 @@ function renderHistorial() {
 }
 window.renderHistorial = renderHistorial;
 
+function showWeekHistory() {
+  renderHistorial();
+  document.getElementById('hist-overlay').classList.add('open');
+}
+window.showWeekHistory = showWeekHistory;
+
+function closeHistOverlay(e) {
+  if (e && e.target !== document.getElementById('hist-overlay')) return;
+  document.getElementById('hist-overlay').classList.remove('open');
+}
+window.closeHistOverlay = closeHistOverlay;
+
+async function loadHistWeek(histId) {
+  const h = (window._history||[]).find(x=>x.id===histId);
+  if (!h || !h.slots) { toast('Sin datos para cargar'); return; }
+  // Reconstruir week desde slots del historial (solo IDs que siguen existiendo)
+  const newWeek = {};
+  Object.entries(h.slots).forEach(([key, arr]) => {
+    const ids = (arr||[]).map(dish => {
+      const found = (window._dishes||[]).find(d => d.name===dish.name);
+      return found ? found.id : null;
+    }).filter(Boolean);
+    if (ids.length) newWeek[key] = ids;
+  });
+  await window._saveWeekToDb(newWeek);
+  closeHistOverlay();
+  toast('✅ Semana cargada');
+}
+window.loadHistWeek = loadHistWeek;
+
 async function clearHistory() {
   if(!confirm('¿Borrar todo el historial?')) return;
   await window._clearHistoryInDb();
@@ -1507,42 +1757,106 @@ async function clearHistory() {
 window.clearHistory = clearHistory;
 
 // ── STATS ──
+let statsPersonFilter = 'all';
+
+function renderStatsPersonFilter() {
+  const el = document.getElementById('stats-person-filter');
+  if (!el) return;
+  const persons = window._persons || [];
+  const all = [{id:'all', name:'Todos', color:'var(--accent)'},...persons];
+  el.innerHTML = all.map(p => {
+    const active = statsPersonFilter === p.id;
+    return `<button class="filter-chip ${active?'active':''}"
+      style="${active?`background:${p.color}22;border-color:${p.color};color:${p.color}`:''}"
+      onclick="statsPersonFilter='${p.id}';renderStats()">${p.name}</button>`;
+  }).join('');
+}
+
+function getStatsKcalForPerson(h, pid) {
+  // Sumar kcal del historial para una persona concreta
+  // slots tiene keys como "0-lunch-all", "0-lunch-personId"
+  let k = 0;
+  Object.entries(h.slots||{}).forEach(([key, arr]) => {
+    const parts = key.split('-');
+    const slotPid = parts[2] || 'all';
+    if (pid === 'all' || slotPid === pid || slotPid === 'all') {
+      (arr||[]).forEach(dish => { k += dish.macros?.k || 0; });
+    }
+  });
+  return k;
+}
+
 function renderStats() {
-  const el=document.getElementById('stats-content');
-  const history=window._history||[];
-  if(!history.length){
-    el.innerHTML='<div class="empty">Guarda al menos una semana<br>para ver estadísticas.</div>';
+  renderStatsPersonFilter();
+  const el = document.getElementById('stats-content');
+  const history = window._history||[];
+  if (!history.length) {
+    el.innerHTML='<div style="color:var(--muted);font-size:0.82rem;text-align:center;padding:30px 0">Guarda al menos una semana<br>para ver estadísticas.</div>';
     return;
   }
-  const counts={};
-  let kcals=[],prots=[];
-  history.forEach(h=>{
-    kcals.push(h.k||0); prots.push(h.pr||0);
-    Object.values(h.slots||{}).forEach(arr=>{
-      (arr||[]).forEach(dish=>{ counts[dish.name]=(counts[dish.name]||0)+1; });
+
+  const counts = {};
+  let kcalsByWeek = [];
+  history.slice(0,8).forEach(h => {
+    const k = getStatsKcalForPerson(h, statsPersonFilter);
+    kcalsByWeek.push({ label: h.label.split('–')[0].trim(), k });
+    Object.values(h.slots||{}).forEach(arr => {
+      (arr||[]).forEach(dish => { counts[dish.name]=(counts[dish.name]||0)+1; });
     });
   });
-  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const maxC=sorted[0]?.[1]||1;
-  const avgK=kcals.reduce((a,b)=>a+b,0)/history.length;
-  const avgP=prots.reduce((a,b)=>a+b,0)/history.length;
-  const avgU=history.reduce((a,h)=>a+h.unique,0)/history.length;
 
-  el.innerHTML=`
-    <div class="sec-title">Resumen general</div>
+  const maxK = Math.max(...kcalsByWeek.map(x=>x.k), 1);
+  const avgK = kcalsByWeek.reduce((a,b)=>a+b.k,0) / (kcalsByWeek.length||1);
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxC = sorted[0]?.[1]||1;
+
+  // Comparación entre personas
+  const persons = window._persons||[];
+  const personCompare = persons.length > 0 ? `
+    <div class="sec-title" style="margin-top:4px">Comparativa</div>
+    <div class="stats-compare-grid">
+      <div class="stats-person-card">
+        <div class="stats-person-name">Todos</div>
+        <span class="stats-person-kcal">${avgK?Math.round(avgK/7):'—'}</span>
+        <div class="stats-person-sub">kcal/día prom</div>
+      </div>
+      ${persons.map(p => {
+        const pKcals = history.slice(0,8).map(h => getStatsKcalForPerson(h, p.id));
+        const pAvg = pKcals.reduce((a,b)=>a+b,0)/(pKcals.length||1);
+        return `<div class="stats-person-card" style="border-color:${p.color}44">
+          <div class="stats-person-name" style="color:${p.color}">${p.name}</div>
+          <span class="stats-person-kcal" style="color:${p.color}">${pAvg?Math.round(pAvg/7):'—'}</span>
+          <div class="stats-person-sub">kcal/día prom</div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  el.innerHTML = `
     <div class="kpi-row">
       <div class="kpi"><span class="kpi-val">${history.length}</span><span class="kpi-lbl">semanas</span></div>
-      <div class="kpi"><span class="kpi-val">${Math.round(avgU)}</span><span class="kpi-lbl">platos únicos/sem</span></div>
       <div class="kpi"><span class="kpi-val">${avgK?Math.round(avgK/7):'—'}</span><span class="kpi-lbl">kcal/día prom</span></div>
-      <div class="kpi"><span class="kpi-val">${avgP?Math.round(avgP/7)+'g':'—'}</span><span class="kpi-lbl">proteína/día prom</span></div>
     </div>
-    <div class="sec-title">Platos más repetidos</div>
-    ${sorted.map(([name,count])=>`
-      <div class="bar-row">
-        <span class="bar-lbl">🍽 ${name}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/maxC*100)}%"></div></div>
-        <span class="bar-cnt">${count}x</span>
-      </div>`).join('')}`;
+    ${personCompare}
+    <div class="stats-chart-wrap">
+      <div class="stats-chart-title">Kcal totales por semana</div>
+      <div class="bar-chart">
+        ${kcalsByWeek.reverse().map(({label,k}) => `
+          <div class="bar-chart-row">
+            <div class="bar-chart-label">${label}</div>
+            <div class="bar-chart-track"><div class="bar-chart-fill" style="width:${k?Math.round(k/maxK*100):0}%"></div></div>
+            <div class="bar-chart-val">${k?Math.round(k/7)+' k/d':'—'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="stats-chart-wrap">
+      <div class="stats-chart-title">Platos más frecuentes</div>
+      ${sorted.map(([name,count])=>`
+        <div class="bar-row" style="margin-bottom:8px">
+          <span class="bar-lbl" style="width:110px">🍽 ${name}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/maxC*100)}%"></div></div>
+          <span class="bar-cnt">${count}x</span>
+        </div>`).join('')}
+    </div>`;
 }
 window.renderStats = renderStats;
 
@@ -1716,7 +2030,7 @@ async function saveLibIngredient() {
   const id = libEditId || Date.now().toString();
   await window._saveIngLibToDb({ id, name, brand, cat, k, kj, p, c, sugar, f, sat, salt, fiber, obs, price, priceUnit, meatPct, additives });
 
-  if (libEditId) { cancelLibEdit(); toast('Ingrediente actualizado'); }
+  if (libEditId) { cancelLibEdit(); toast('Ingrediente actualizado'); showBibLanding(); }
   else {
     ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct']
       .forEach(i => document.getElementById(i).value = '');
@@ -1724,8 +2038,7 @@ async function saveLibIngredient() {
     loadAdditivesFromString('');
     document.getElementById('lib-cat').value = '';
     document.getElementById('lib-price-unit').value = 'unidad';
-    document.getElementById('lib-name').focus();
-    toast(`⭐ "${name}" guardado`);
+    toast(`✅ "${name}" guardado`);
   }
 }
 window.saveLibIngredient = saveLibIngredient;
@@ -1754,7 +2067,7 @@ function editLibIngredient(id) {
   document.getElementById('lib-form-label').textContent = 'Editar ingrediente';
   document.getElementById('lib-cancel-btn').style.display = 'inline-flex';
   document.getElementById('lib-save-btn').textContent = 'Actualizar ingrediente';
-  document.getElementById('lib-form-card').scrollIntoView({ behavior: 'smooth' });
+  showBibSub('nueva'); document.getElementById('lib-form-card')?.scrollIntoView({ behavior: 'smooth' });
 }
 window.editLibIngredient = editLibIngredient;
 
@@ -1887,9 +2200,11 @@ function setRecetasFilter(cat) { recetasCatFilter = cat; renderRecetas(); }
 window.setRecetasFilter = setRecetasFilter;
 
 function openReceta(id) {
-  // Open in edit mode in Platos tab
-  switchView('platos');
-  setTimeout(() => editDish(id), 100);
+  switchView('recetas');
+  setTimeout(() => {
+    showRecetasSub('nueva');
+    editDish(id);
+  }, 50);
 }
 window.openReceta = openReceta;
 
@@ -2253,6 +2568,9 @@ document.addEventListener('click', e => {
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 renderIngRows();
+// Arrancar en Recetas
+switchView('recetas');
 </script>
+
 </body>
 </html>
