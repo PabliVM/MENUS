@@ -33,8 +33,10 @@ display: flex; align-items: center; justify-content: space-between;
 /* BOTTOM NAV */
 .bottom-nav {
 position: fixed; bottom: 0; left: 0; right: 0;
-background: var(–surface); border-top: 1px solid var(–border2);
-display: flex; z-index: 200; padding-bottom: env(safe-area-inset-bottom);
+background: #1a1815; border-top: 1px solid var(–border2);
+display: flex; z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
+box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+-webkit-backdrop-filter: none; backdrop-filter: none;
 }
 .nav-btn {
 flex: 1; display: flex; flex-direction: column; align-items: center;
@@ -122,7 +124,7 @@ cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: ‘Instrument
 .day-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
 .day-scroll::-webkit-scrollbar { display: none; }
 .day-chip { flex-shrink: 0; padding: 7px 14px; border-radius: 20px; font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border: 1.5px solid var(–border2); background: var(–surface2); color: var(–muted); transition: all 0.15s; }
-.day-chip.active { background: var(–accent); color: #000; border-color: var(–accent); font-weight: 600; }
+.day-chip.active { background: var(–accent); color: #000; border-color: var(–accent); font-weight: 700; font-size: 0.78rem; box-shadow: 0 2px 10px rgba(232,163,39,0.45); letter-spacing: 0.5px; }
 .day-chip .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(–accent2); margin-left: 4px; vertical-align: middle; }
 
 .meal-card { background: var(–surface); border: 1px solid var(–border2); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
@@ -266,6 +268,12 @@ padding: 18px 16px; cursor: pointer; transition: all 0.15s;
 
 /* SUB-HEADER back button */
 .sub-header { padding: 10px 0 14px; }
+/* Sub-vistas: fondo sólido para que no se vea lo de debajo */
+.subview {
+background: var(–bg);
+min-height: calc(100vh - 72px);
+position: relative;
+}
 .back-btn {
 background: none; border: none; color: var(–accent); font-family: ‘Instrument Sans’, sans-serif;
 font-size: 0.82rem; font-weight: 600; cursor: pointer; padding: 6px 0; letter-spacing: 0.3px;
@@ -414,7 +422,7 @@ text-align: center; flex: 1;
     </div>
   </div>
   <!-- SUB-VISTA: nuevo ingrediente -->
-  <div id="bib-nueva" style="display:none">
+  <div class="subview" id="bib-nueva" style="display:none;background:var(--bg);min-height:100%">
     <div class="sub-header">
       <button class="back-btn" onclick="showBibLanding()">← Ingredientes</button>
     </div>
@@ -542,7 +550,7 @@ text-align: center; flex: 1;
 
   </div>
   <!-- SUB-VISTA: lista ingredientes -->
-  <div id="bib-lista" style="display:none">
+  <div class="subview" id="bib-lista" style="display:none;background:var(--bg);min-height:100%">
     <div class="sub-header">
       <button class="back-btn" onclick="showBibLanding()">← Ingredientes</button>
     </div>
@@ -578,7 +586,7 @@ text-align: center; flex: 1;
     </div>
   </div>
   <!-- SUB-VISTA: nueva receta (form platos) -->
-  <div id="recetas-nueva" style="display:none">
+  <div class="subview" id="recetas-nueva" style="display:none;background:var(--bg);min-height:100%">
     <div class="sub-header">
       <button class="back-btn" onclick="showRecetasLanding()">← Recetas</button>
     </div>
@@ -595,11 +603,12 @@ text-align: center; flex: 1;
         <span style="font-size:0.7rem;color:var(--muted)">Identifica ingredientes con IA para calcular macros</span>
       </div>
       <div class="field"><label>Preparación</label><textarea id="f-prep" placeholder="Describe cómo preparar el plato…" rows="4"></textarea></div>
+      <div class="field"><label>🎬 Vídeo / Enlace (YouTube, Instagram…)</label><input id="f-url" type="url" placeholder="https://youtube.com/watch?v=…"/></div>
       <button class="btn btn-accent" id="save-dish-btn" onclick="saveDish()">Guardar plato</button>
     </div>
   </div>
   <!-- SUB-VISTA: lista de recetas -->
-  <div id="recetas-lista" style="display:none">
+  <div class="subview" id="recetas-lista" style="display:none;background:var(--bg);min-height:100%">
     <div class="sub-header">
       <button class="back-btn" onclick="showRecetasLanding()">← Recetas</button>
     </div>
@@ -1236,17 +1245,19 @@ async function saveDish() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { document.getElementById('f-name').focus(); return; }
   const prep  = document.getElementById('f-prep').value.trim();
+  const url   = document.getElementById('f-url').value.trim();
   const ings  = ingRows.filter(r=>r.name.trim());
   const macros = calcMacros(ings);
   const id = editId || Date.now().toString();
 
-  const dish = { id, name, prep, ingredients: ings, macros };
+  const dish = { id, name, prep, url, ingredients: ings, macros };
   await window._saveDishToDb(dish);
 
   if (editId) { cancelEdit(); toast('Plato actualizado'); showRecetasLanding(); }
   else {
     document.getElementById('f-name').value='';
     document.getElementById('f-prep').value='';
+    document.getElementById('f-url').value='';
     ingRows=[]; renderIngRows();
     toast('✅ Plato guardado — consulta tus recetas para verlo');
   }
@@ -1258,6 +1269,7 @@ function editDish(id) {
   editId = id;
   document.getElementById('f-name').value = d.name;
   document.getElementById('f-prep').value = d.prep||'';
+  document.getElementById('f-url').value  = d.url||'';
   ingRows = (d.ingredients||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}));
   renderIngRows();
   document.getElementById('form-mode-label').textContent = 'Editar plato';
@@ -1271,6 +1283,7 @@ function cancelEdit() {
   editId=null;
   document.getElementById('f-name').value='';
   document.getElementById('f-prep').value='';
+  document.getElementById('f-url').value='';
   ingRows=[]; renderIngRows();
   document.getElementById('form-mode-label').textContent='Nuevo plato';
   document.getElementById('cancel-edit-btn').style.display='none';
@@ -1302,6 +1315,7 @@ function renderDishList() {
         <div class="dish-name">🍽 ${d.name}</div>
         <div class="dish-macros">${macroHtml(d.macros)}</div>
         ${d.macros ? nsBadgeCompact(d.macros) : ''}
+        ${d.url ? `<div style="margin-top:4px"><a href="${d.url}" target="_blank" style="font-size:0.68rem;color:var(--accent);text-decoration:none">🎬 Ver vídeo →</a></div>` : ''}
       </div>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDish('${d.id}')">✕</button>
     </div>`).join('');
