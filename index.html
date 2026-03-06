@@ -638,7 +638,17 @@ function openCat(ingId) {
           </div>`).join('')}
       </div>
     </div>`).join('') +
-    `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="confirmCatNone()">Sin datos nutricionales</button>`;
+    `<div class="cat-group" style="margin-top:8px">
+      <div class="cat-group-title">Introducir manualmente</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="m-k" placeholder="165" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Prot(g)</label><input type="number" id="m-p" placeholder="20" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Carb(g)</label><input type="number" id="m-c" placeholder="0" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Gras(g)</label><input type="number" id="m-f" placeholder="5" min="0" style="text-align:center"/></div>
+      </div>
+      <button class="btn btn-accent" onclick="confirmManual()">Confirmar macros manuales</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmCatNone()">Sin datos nutricionales</button>`;
   document.getElementById('cat-overlay').classList.add('open');
 }
 window.openCat = openCat;
@@ -650,6 +660,19 @@ function confirmCat(item) {
   closeCat(); renderIngRows();
 }
 window.confirmCat = confirmCat;
+
+function confirmManual() {
+  const k = parseFloat(document.getElementById('m-k').value) || 0;
+  const p = parseFloat(document.getElementById('m-p').value) || 0;
+  const c = parseFloat(document.getElementById('m-c').value) || 0;
+  const f = parseFloat(document.getElementById('m-f').value) || 0;
+  if (!k && !p && !c && !f) { toast('Introduce al menos un valor'); return; }
+  const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
+  r.macros100 = { k, p, c, f };
+  r.confirmed = true;
+  closeCat(); renderIngRows();
+}
+window.confirmManual = confirmManual;
 
 function confirmCatNone() {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
