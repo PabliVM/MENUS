@@ -355,6 +355,8 @@ header {
       <label>Categoría de compra</label>
       <select id="lib-cat">
         <option value="">— Sin categoría —</option>
+        <option value="Pollo / Ave">🍗 Pollo / Ave</option>
+        <option value="Pollo / Ave">🍗 Pollo / Ave</option>
         <option value="Carne">🥩 Carne</option>
         <option value="Pescado">🐟 Pescado</option>
         <option value="Fruta">🍎 Fruta</option>
@@ -1320,7 +1322,7 @@ window.closePersonConfig = closePersonConfig;
 
 // ── COMPRA ──
 const CAT_ICONS = {
-  'Carne':'🥩','Pescado':'🐟','Fruta':'🍎','Verdura':'🥦','Lácteos':'🥛',
+  'Pollo / Ave':'🍗','Carne':'🥩','Pescado':'🐟','Fruta':'🍎','Verdura':'🥦','Lácteos':'🥛',
   'Huevos':'🥚','Despensa':'🫙','Congelado':'🧊','Pan y cereales':'🍞',
   'Bebidas':'🧃','Higiene':'🧴','Otros':'📦','Extra':'➕'
 };
@@ -1334,7 +1336,8 @@ function getIngCat(name) {
 
 function inferCat(name) {
   const k = name.toLowerCase();
-  if (['pollo','ternera','cerdo','pavo','carne','pechuga','muslo','cordero','vacuno','jamon','jamón','chorizo','salchicha'].some(w=>k.includes(w))) return 'Carne';
+  if (['pollo','pavo','pechuga','muslo'].some(w=>k.includes(w))) return 'Pollo / Ave';
+  if (['ternera','cerdo','carne','cordero','vacuno','jamon','jamón','chorizo','salchicha'].some(w=>k.includes(w))) return 'Carne';
   if (['salmón','salmon','merluza','atun','atún','bacalao','gamba','langostino','dorada','pescado'].some(w=>k.includes(w))) return 'Pescado';
   if (['leche','yogur','queso','nata','mantequilla','kéfir'].some(w=>k.includes(w))) return 'Lácteos';
   if (['huevo'].some(w=>k.includes(w))) return 'Huevos';
@@ -1891,39 +1894,32 @@ function openReceta(id) {
 window.openReceta = openReceta;
 
 // ── NUTRI SCORE ──
-// Umbrales por 100g (alineados con semáforo FSA/RealFood)
-// [verde_max, amarillo_max] — encima de amarillo_max = rojo
 const NS_THRESHOLDS = {
   k:    { label:'Calorías',     unit:'kcal', lo:200,  hi:400,  invert:false },
-  p:    { label:'Proteínas',    unit:'g',    lo:10,   hi:20,   invert:true  }, // alto es bueno
+  p:    { label:'Proteínas',    unit:'g',    lo:10,   hi:20,   invert:true  },
   c:    { label:'Hidratos',     unit:'g',    lo:20,   hi:45,   invert:false },
   sugar:{ label:'Azúcares',     unit:'g',    lo:5,    hi:12.5, invert:false },
   f:    { label:'Grasas',       unit:'g',    lo:3,    hi:17.5, invert:false },
   sat:  { label:'Grasas sat.',  unit:'g',    lo:1.5,  hi:5,    invert:false },
-  fiber:{ label:'Fibra',        unit:'g',    lo:3,    hi:6,    invert:true  }, // alto es bueno
+  fiber:{ label:'Fibra',        unit:'g',    lo:3,    hi:6,    invert:true  },
   salt: { label:'Sal',          unit:'g',    lo:0.3,  hi:1.5,  invert:false },
 };
 
-// Devuelve 'green'|'yellow'|'red' para un valor
 function nsColor(key, val) {
   const t = NS_THRESHOLDS[key];
   if (!t || val === undefined || val === null || val === 0) return null;
   if (t.invert) {
-    // alto = verde
     if (val >= t.hi) return 'green';
     if (val >= t.lo) return 'yellow';
     return 'red';
   } else {
-    // bajo = verde
     if (val <= t.lo) return 'green';
     if (val <= t.hi) return 'yellow';
     return 'red';
   }
 }
 
-// Badge compacto para usar en listas: solo muestra los rojos y la proteína
 function nsBadgeCompact(data) {
-  // data puede ser macros de plato {k,p,c,f} o ingrediente {k,p,c,f,sugar,sat,fiber,salt}
   const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
   const pills = [];
   keys.forEach(key => {
@@ -1932,7 +1928,6 @@ function nsBadgeCompact(data) {
     const color = nsColor(key, val);
     if (!color) return;
     const t = NS_THRESHOLDS[key];
-    // En compacto: solo rojos + proteína (para no saturar)
     if (color === 'red' || key === 'p') {
       pills.push(`<span class="ns-pill ${color}"><span class="ns-dot"></span>${t.label}</span>`);
     }
@@ -1941,7 +1936,6 @@ function nsBadgeCompact(data) {
   return `<div class="ns-bar">${pills.join('')}</div>`;
 }
 
-// Tabla completa para detalle
 function nsTableFull(data) {
   const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
   const rows = keys.map(key => {
@@ -1960,7 +1954,6 @@ function nsTableFull(data) {
   return `<table class="ns-table"><tbody>${rows.join('')}</tbody></table>`;
 }
 const ADDITIVES_DB = [
-  // Colorantes E1xx
   { code:'E100', name:'Curcumina (amarillo)' },
   { code:'E101', name:'Riboflavina (amarillo)' },
   { code:'E102', name:'Tartrazina (amarillo)' },
@@ -1990,7 +1983,6 @@ const ADDITIVES_DB = [
   { code:'E163', name:'Antocianos (rojo/azul)' },
   { code:'E171', name:'Dióxido de titanio (blanco)' },
   { code:'E172', name:'Óxidos e hidróxidos de hierro' },
-  // Conservantes E2xx
   { code:'E200', name:'Ácido sórbico' },
   { code:'E202', name:'Sorbato de potasio' },
   { code:'E210', name:'Ácido benzoico' },
@@ -2016,7 +2008,6 @@ const ADDITIVES_DB = [
   { code:'E281', name:'Propionato de sodio' },
   { code:'E282', name:'Propionato de calcio' },
   { code:'E290', name:'Dióxido de carbono' },
-  // Antioxidantes E3xx
   { code:'E300', name:'Ácido ascórbico (vitamina C)' },
   { code:'E301', name:'Ascorbato de sodio' },
   { code:'E302', name:'Ascorbato de calcio' },
@@ -2051,7 +2042,6 @@ const ADDITIVES_DB = [
   { code:'E363', name:'Ácido succínico' },
   { code:'E380', name:'Citratos de amonio' },
   { code:'E385', name:'EDTA cálcico disódico' },
-  // Emulsionantes / espesantes E4xx
   { code:'E400', name:'Ácido algínico' },
   { code:'E401', name:'Alginato de sodio' },
   { code:'E402', name:'Alginato de potasio' },
@@ -2102,7 +2092,6 @@ const ADDITIVES_DB = [
   { code:'E491', name:'Monoestearato de sorbitán' },
   { code:'E492', name:'Triestearato de sorbitán' },
   { code:'E495', name:'Monopalmitato de sorbitán' },
-  // Potenciadores / edulcorantes E6xx
   { code:'E620', name:'Ácido glutámico' },
   { code:'E621', name:'Glutamato monosódico (MSG)' },
   { code:'E627', name:'Guanilato de sodio' },
@@ -2121,7 +2110,7 @@ const ADDITIVES_DB = [
   { code:'E968', name:'Eritritol' },
 ];
 
-let selectedAdditives = []; // array of codes
+let selectedAdditives = [];
 
 function filterAdditives(q) {
   const dd = document.getElementById('additives-dropdown');
@@ -2185,7 +2174,6 @@ function loadAdditivesFromString(str) {
   syncAdditivesHidden();
 }
 
-// Close dropdown on outside click
 document.addEventListener('click', e => {
   if (!e.target.closest('#lib-additives-search') && !e.target.closest('#additives-dropdown')) {
     const dd = document.getElementById('additives-dropdown');
@@ -2195,7 +2183,6 @@ document.addEventListener('click', e => {
 
 // ── MARCAS ──
 const BRANDS_DB = [
-  // Supermercados propios / marca blanca
   'Hacendado (Mercadona)', 'Deliplus (Mercadona)', 'Bosque Verde (Mercadona)',
   'Dia', 'Bonté (Dia)', 'As (Dia)',
   'Carrefour', 'Carrefour Bio', 'Carrefour Selection', 'Carrefour Kids',
@@ -2203,30 +2190,22 @@ const BRANDS_DB = [
   'Aldi', 'Gut Bio (Aldi)', 'Cucina (Aldi)',
   'El Corte Inglés', 'Aliada (El Corte Inglés)',
   'Hipercor', 'Spar', 'Condis', 'Eroski', 'Caprabo', 'Alcampo', 'Simply', 'BM Supermercados',
-  // Marcas de gran consumo - lácteos
   'Danone', 'Activia', 'Actimel', 'Alpro', 'Oatly', 'Leche Pascual', 'Puleva',
   'Central Lechera Asturiana', 'Kaiku', 'Nestlé', 'President', 'Président',
   'Philadelphia', 'Queso El Pastor', 'Arias', 'Larsa',
-  // Carnes y embutidos
   'Campofrío', 'ElPozo', 'Oscar Mayer', 'Argal', 'Navidul', 'Casa Tarradellas',
   'Vall Companys', 'Coren', 'Selecta', 'Revilla',
-  // Aceites
   'Carbonell', 'Hojiblanca', 'Borges', 'Koipe', 'Sovena', 'La Española',
-  // Conservas y salsas
   'Heinz', 'Knorr', 'Hellmann\'s', 'Calvé', 'Ducros', 'Orlando', 'Hida',
   'Calvo', 'Isabel', 'Jealsa / Rianxeira', 'Ortiz', 'Pescanova',
-  // Cereales y pasta
   'Kellogg\'s', 'Nestlé Cereals', 'Quaker', 'La Molisana', 'Barilla', 'Gallo', 'Pastas Romero',
   'Bimbo', 'Panrico', 'Silueta', 'Wasa',
-  // Bebidas
   'Coca-Cola', 'PepsiCo', 'Nestea', 'Aquarius', 'Font Vella', 'Bezoya',
   'Solán de Cabras', 'Mahou', 'Estrella Damm', 'Estrella Galicia',
   'Don Simón', 'Granini', 'Tropicana', 'Minute Maid',
-  // Snacks y dulces
   'Lay\'s', 'Ruffles', 'Pringles', 'Doritos', 'Risketos', 'Torres',
   'Oreo', 'Príncipe', 'Milka', 'Nutella', 'Ferrero', 'Kinder',
   'Haribo', 'Chupa Chups', 'Grefusa',
-  // Otros
   'Hero', 'Heinz Baby', 'Aptamil', 'Nutriben', 'Nestlé Baby',
   'Germinal', 'Natursoy', 'Veritas', 'Biocentury',
 ];
@@ -2246,7 +2225,6 @@ function filterBrands(q) {
     </div>`
   ).join('');
 
-  // If typed value doesn't match exactly, offer to add it
   const exactMatch = BRANDS_DB.some(b => b.toLowerCase() === val);
   if (val && !exactMatch) {
     rows += `<div class="additive-row" style="color:var(--accent)" onclick="selectBrand('${q.replace(/'/g,"\\'")}')">
