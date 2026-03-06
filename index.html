@@ -1116,6 +1116,7 @@ const FOOD_DB = {
 };
 
 let catTarget = null;
+window._catItems = {}; // Map id -> item para evitar JSON en atributos
 
 function openCat(ingId) {
   catTarget = ingId;
@@ -1129,17 +1130,28 @@ window.openCat = openCat;
 function renderCatBody() {
   const body = document.getElementById('cat-body');
   const lib = window._ingLib || [];
+  window._catItems = {};
+  let idx = 0;
+
+  function itemCard(item, extraClass, delBtn) {
+    const key = 'ci' + (idx++);
+    window._catItems[key] = item;
+    return `<div class="cat-item ${extraClass}" onclick="confirmCatKey('${key}')" style="${extraClass?'position:relative':''}">
+      <div class="cat-item-name">${item.name}</div>
+      <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
+      ${delBtn||''}
+    </div>`;
+  }
 
   const libHtml = lib.length ? `
     <div class="cat-group">
       <div class="cat-group-title">⭐ Mis ingredientes guardados</div>
       <div class="cat-grid">
-        ${lib.map(item => `
-          <div class="cat-item cat-item-saved" style="position:relative" onclick="confirmCat(${JSON.stringify({name:item.name,p:item.p,c:item.c,f:item.f,k:item.k}).replace(/"/g,'&quot;')})">
-            <div class="cat-item-name">${item.name}</div>
-            <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
-            <button class="cat-item-del" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>
-          </div>`).join('')}
+        ${lib.map(item => itemCard(
+          {name:item.name,p:item.p,c:item.c,f:item.f,k:item.k},
+          'cat-item-saved',
+          `<button class="cat-item-del" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>`
+        )).join('')}
       </div>
     </div>` : '';
 
@@ -1147,11 +1159,7 @@ function renderCatBody() {
     <div class="cat-group">
       <div class="cat-group-title">${group}</div>
       <div class="cat-grid">
-        ${items.map(item => `
-          <div class="cat-item" onclick="confirmCat(${JSON.stringify(item).replace(/"/g,'&quot;')})">
-            <div class="cat-item-name">${item.name}</div>
-            <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
-          </div>`).join('')}
+        ${items.map(item => itemCard(item, '', '')).join('')}
       </div>
     </div>`).join('');
 
@@ -1174,6 +1182,13 @@ function renderCatBody() {
 
   body.innerHTML = libHtml + stdHtml + manualHtml;
 }
+
+function confirmCatKey(key) {
+  const item = window._catItems[key];
+  if (!item) { console.error('confirmCatKey: key no encontrada', key); return; }
+  confirmCat(item);
+}
+window.confirmCatKey = confirmCatKey;
 
 function confirmCat(item) {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
