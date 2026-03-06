@@ -212,7 +212,13 @@ header {
 .save-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 8px; margin-top: 10px; cursor: pointer; font-size: 0.82rem; }
 .save-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent2); flex-shrink: 0; }
 
-.empty { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 36px 0; line-height: 2.2; }
+.additive-chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:12px; background:rgba(232,163,39,0.12); border:1px solid rgba(232,163,39,0.3); font-size:0.68rem; color:var(--accent); }
+.additive-chip button { background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.75rem; padding:0 1px; line-height:1; }
+.additive-row { padding:8px 12px; font-size:0.78rem; cursor:pointer; border-bottom:1px solid var(--border); }
+.additive-row:last-child { border-bottom:none; }
+.additive-row:hover, .additive-row:active { background:var(--surface2); }
+.additive-code { font-weight:600; color:var(--accent); margin-right:6px; }
+.additive-name { color:var(--muted); font-size:0.7rem; }
 
 /* LOADING SPINNER */
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
@@ -316,7 +322,12 @@ header {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label>Nombre</label><input id="lib-name" type="text" placeholder="Pechuga de pollo" maxlength="60"/></div>
-      <div class="field"><label>Marca (opcional)</label><input id="lib-brand" type="text" placeholder="Mercadona, Hacendado…" maxlength="40"/></div>
+      <div class="field" style="position:relative">
+        <label>Marca (opcional)</label>
+        <input id="lib-brand" type="text" placeholder="Mercadona, Hacendado…" maxlength="60"
+          oninput="filterBrands(this.value)" onfocus="filterBrands(this.value)" autocomplete="off"/>
+        <div id="brand-dropdown" style="display:none;position:absolute;left:0;right:0;z-index:100;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:2px;max-height:200px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)"></div>
+      </div>
     </div>
 
     <div class="field">
@@ -406,9 +417,12 @@ header {
         <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Para cárnicos, embutidos, etc.</div>
       </div>
       <div class="field" style="margin-bottom:0">
-        <label>Aditivos (E-numbers)</label>
-        <input type="text" id="lib-additives" placeholder="E250, E300…" maxlength="120"/>
-        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Separados por coma</div>
+        <label>Aditivos</label>
+        <input type="text" id="lib-additives-search" placeholder="Buscar E250, colorante…" autocomplete="off"
+          oninput="filterAdditives(this.value)" onfocus="showAdditivesList()" />
+        <div id="additives-dropdown" style="display:none;position:relative;z-index:50;background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin-top:4px;max-height:160px;overflow-y:auto"></div>
+        <div id="additives-chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px"></div>
+        <input type="hidden" id="lib-additives"/>
       </div>
     </div>
 
@@ -1540,8 +1554,10 @@ async function saveLibIngredient() {
 
   if (libEditId) { cancelLibEdit(); toast('Ingrediente actualizado'); }
   else {
-    ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct','lib-additives']
+    ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct']
       .forEach(i => document.getElementById(i).value = '');
+    document.getElementById('lib-additives-search').value = '';
+    loadAdditivesFromString('');
     document.getElementById('lib-cat').value = '';
     document.getElementById('lib-price-unit').value = 'unidad';
     document.getElementById('lib-name').focus();
@@ -1570,6 +1586,7 @@ function editLibIngredient(id) {
   document.getElementById('lib-price-unit').value = item.priceUnit || 'unidad';
   document.getElementById('lib-meat-pct').value   = item.meatPct   || '';
   document.getElementById('lib-additives').value  = item.additives || '';
+  loadAdditivesFromString(item.additives || '');
   document.getElementById('lib-form-label').textContent = 'Editar ingrediente';
   document.getElementById('lib-cancel-btn').style.display = 'inline-flex';
   document.getElementById('lib-save-btn').textContent = 'Actualizar ingrediente';
@@ -1579,8 +1596,10 @@ window.editLibIngredient = editLibIngredient;
 
 function cancelLibEdit() {
   libEditId = null;
-  ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct','lib-additives']
+  ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct']
     .forEach(i => document.getElementById(i).value = '');
+  document.getElementById('lib-additives-search').value = '';
+  loadAdditivesFromString('');
   document.getElementById('lib-cat').value = '';
   document.getElementById('lib-price-unit').value = 'unidad';
   document.getElementById('lib-form-label').textContent = 'Nuevo ingrediente';
@@ -1707,6 +1726,320 @@ function openReceta(id) {
   setTimeout(() => editDish(id), 100);
 }
 window.openReceta = openReceta;
+
+// ── ADITIVOS ──
+const ADDITIVES_DB = [
+  // Colorantes E1xx
+  { code:'E100', name:'Curcumina (amarillo)' },
+  { code:'E101', name:'Riboflavina (amarillo)' },
+  { code:'E102', name:'Tartrazina (amarillo)' },
+  { code:'E104', name:'Amarillo de quinoleína' },
+  { code:'E110', name:'Amarillo ocaso FCF' },
+  { code:'E120', name:'Carmín / cochinilla (rojo)' },
+  { code:'E122', name:'Azorrubina (rojo)' },
+  { code:'E123', name:'Amaranto (rojo)' },
+  { code:'E124', name:'Rojo Ponceau 4R' },
+  { code:'E127', name:'Eritrosina (rojo)' },
+  { code:'E129', name:'Rojo Allura AC' },
+  { code:'E131', name:'Azul patentado V' },
+  { code:'E132', name:'Indigotina (azul)' },
+  { code:'E133', name:'Azul brillante FCF' },
+  { code:'E140', name:'Clorofilas (verde)' },
+  { code:'E141', name:'Complejos cúpricos de clorofilas' },
+  { code:'E150a', name:'Caramelo natural' },
+  { code:'E150c', name:'Caramelo amónico' },
+  { code:'E150d', name:'Caramelo sulfito amónico' },
+  { code:'E151', name:'Negro brillante BN' },
+  { code:'E160a', name:'Carotenos (naranja)' },
+  { code:'E160b', name:'Achiote / bixina' },
+  { code:'E160c', name:'Extracto de pimentón' },
+  { code:'E160d', name:'Licopeno (rojo)' },
+  { code:'E161b', name:'Luteína (amarillo)' },
+  { code:'E162', name:'Rojo de remolacha' },
+  { code:'E163', name:'Antocianos (rojo/azul)' },
+  { code:'E171', name:'Dióxido de titanio (blanco)' },
+  { code:'E172', name:'Óxidos e hidróxidos de hierro' },
+  // Conservantes E2xx
+  { code:'E200', name:'Ácido sórbico' },
+  { code:'E202', name:'Sorbato de potasio' },
+  { code:'E210', name:'Ácido benzoico' },
+  { code:'E211', name:'Benzoato de sodio' },
+  { code:'E212', name:'Benzoato de potasio' },
+  { code:'E220', name:'Dióxido de azufre' },
+  { code:'E221', name:'Sulfito de sodio' },
+  { code:'E222', name:'Bisulfito de sodio' },
+  { code:'E223', name:'Metabisulfito de sodio' },
+  { code:'E224', name:'Metabisulfito de potasio' },
+  { code:'E228', name:'Bisulfito de potasio' },
+  { code:'E234', name:'Nisina' },
+  { code:'E235', name:'Natamicina (pimaricina)' },
+  { code:'E249', name:'Nitrito de potasio' },
+  { code:'E250', name:'Nitrito de sodio' },
+  { code:'E251', name:'Nitrato de sodio' },
+  { code:'E252', name:'Nitrato de potasio' },
+  { code:'E260', name:'Ácido acético' },
+  { code:'E261', name:'Acetato de potasio' },
+  { code:'E262', name:'Acetatos de sodio' },
+  { code:'E270', name:'Ácido láctico' },
+  { code:'E280', name:'Ácido propiónico' },
+  { code:'E281', name:'Propionato de sodio' },
+  { code:'E282', name:'Propionato de calcio' },
+  { code:'E290', name:'Dióxido de carbono' },
+  // Antioxidantes E3xx
+  { code:'E300', name:'Ácido ascórbico (vitamina C)' },
+  { code:'E301', name:'Ascorbato de sodio' },
+  { code:'E302', name:'Ascorbato de calcio' },
+  { code:'E304', name:'Ésteres de ácido ascórbico' },
+  { code:'E306', name:'Extractos ricos en tocoferoles' },
+  { code:'E307', name:'Alfa-tocoferol (vitamina E)' },
+  { code:'E310', name:'Galato de propilo' },
+  { code:'E315', name:'Ácido eritórbico' },
+  { code:'E316', name:'Eritorbato de sodio' },
+  { code:'E319', name:'TBHQ (terbutilhidroquinona)' },
+  { code:'E320', name:'BHA (butilhidroxianisol)' },
+  { code:'E321', name:'BHT (butilhidroxitolueno)' },
+  { code:'E322', name:'Lecitinas' },
+  { code:'E325', name:'Lactato de sodio' },
+  { code:'E326', name:'Lactato de potasio' },
+  { code:'E327', name:'Lactato de calcio' },
+  { code:'E330', name:'Ácido cítrico' },
+  { code:'E331', name:'Citratos de sodio' },
+  { code:'E332', name:'Citratos de potasio' },
+  { code:'E333', name:'Citratos de calcio' },
+  { code:'E334', name:'Ácido tartárico' },
+  { code:'E335', name:'Tartratos de sodio' },
+  { code:'E336', name:'Tartratos de potasio' },
+  { code:'E338', name:'Ácido fosfórico' },
+  { code:'E339', name:'Fosfatos de sodio' },
+  { code:'E340', name:'Fosfatos de potasio' },
+  { code:'E341', name:'Fosfatos de calcio' },
+  { code:'E350', name:'Malatos de sodio' },
+  { code:'E351', name:'Malato de potasio' },
+  { code:'E352', name:'Malatos de calcio' },
+  { code:'E355', name:'Ácido adípico' },
+  { code:'E363', name:'Ácido succínico' },
+  { code:'E380', name:'Citratos de amonio' },
+  { code:'E385', name:'EDTA cálcico disódico' },
+  // Emulsionantes / espesantes E4xx
+  { code:'E400', name:'Ácido algínico' },
+  { code:'E401', name:'Alginato de sodio' },
+  { code:'E402', name:'Alginato de potasio' },
+  { code:'E404', name:'Alginato de calcio' },
+  { code:'E406', name:'Agar-agar' },
+  { code:'E407', name:'Carragenanos' },
+  { code:'E410', name:'Harina de semillas de algarrobo' },
+  { code:'E412', name:'Goma guar' },
+  { code:'E413', name:'Tragacanto' },
+  { code:'E414', name:'Goma arábiga (acacia)' },
+  { code:'E415', name:'Goma xantana' },
+  { code:'E416', name:'Goma karaya' },
+  { code:'E417', name:'Goma tara' },
+  { code:'E418', name:'Goma gelana' },
+  { code:'E420', name:'Sorbitol' },
+  { code:'E421', name:'Manitol' },
+  { code:'E422', name:'Glicerol' },
+  { code:'E425', name:'Konjac' },
+  { code:'E430', name:'Estearato de polioxietileno' },
+  { code:'E431', name:'Estearato de polioxietileno 40' },
+  { code:'E432', name:'Polisorbato 20' },
+  { code:'E433', name:'Polisorbato 80' },
+  { code:'E440', name:'Pectinas' },
+  { code:'E441', name:'Gelatina' },
+  { code:'E450', name:'Difosfatos' },
+  { code:'E451', name:'Trifosfatos' },
+  { code:'E452', name:'Polifosfatos' },
+  { code:'E460', name:'Celulosa' },
+  { code:'E461', name:'Metilcelulosa' },
+  { code:'E462', name:'Etilcelulosa' },
+  { code:'E463', name:'Hidroxipropilcelulosa' },
+  { code:'E464', name:'Hidroxipropilmetilcelulosa' },
+  { code:'E465', name:'Metilcelulosa etilada' },
+  { code:'E466', name:'Carboximetilcelulosa' },
+  { code:'E470a', name:'Sales sódicas/potásicas de ácidos grasos' },
+  { code:'E471', name:'Mono y diglicéridos de ácidos grasos' },
+  { code:'E472a', name:'Ésteres acéticos de mono/diglicéridos' },
+  { code:'E472b', name:'Ésteres lácticos de mono/diglicéridos' },
+  { code:'E472c', name:'Ésteres cítricos de mono/diglicéridos' },
+  { code:'E472e', name:'Ésteres de monoacetiltartárico y diacetiltartárico' },
+  { code:'E473', name:'Sucroésteres de ácidos grasos' },
+  { code:'E474', name:'Sucroglicéridos' },
+  { code:'E475', name:'Ésteres poliglicéricos de ácidos grasos' },
+  { code:'E476', name:'Polirricinoleato de poliglicerol' },
+  { code:'E477', name:'Ésteres de propilenglicol' },
+  { code:'E481', name:'Estearoil-2-lactilato de sodio' },
+  { code:'E482', name:'Estearoil-2-lactilato de calcio' },
+  { code:'E491', name:'Monoestearato de sorbitán' },
+  { code:'E492', name:'Triestearato de sorbitán' },
+  { code:'E495', name:'Monopalmitato de sorbitán' },
+  // Potenciadores / edulcorantes E6xx
+  { code:'E620', name:'Ácido glutámico' },
+  { code:'E621', name:'Glutamato monosódico (MSG)' },
+  { code:'E627', name:'Guanilato de sodio' },
+  { code:'E631', name:'Inosinato de sodio' },
+  { code:'E635', name:'Ribonucleótidos de sodio' },
+  { code:'E950', name:'Acesulfamo K' },
+  { code:'E951', name:'Aspartamo' },
+  { code:'E952', name:'Ciclamato' },
+  { code:'E954', name:'Sacarina' },
+  { code:'E955', name:'Sucralosa' },
+  { code:'E960', name:'Glucósidos de esteviol (stevia)' },
+  { code:'E961', name:'Neotamo' },
+  { code:'E965', name:'Maltitol' },
+  { code:'E966', name:'Lactitol' },
+  { code:'E967', name:'Xilitol' },
+  { code:'E968', name:'Eritritol' },
+];
+
+let selectedAdditives = []; // array of codes
+
+function filterAdditives(q) {
+  const dd = document.getElementById('additives-dropdown');
+  if (!q.trim()) { dd.style.display = 'none'; return; }
+  const results = ADDITIVES_DB.filter(a =>
+    (a.code.toLowerCase().includes(q.toLowerCase()) || a.name.toLowerCase().includes(q.toLowerCase()))
+    && !selectedAdditives.includes(a.code)
+  ).slice(0, 10);
+  if (!results.length) { dd.style.display = 'none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = results.map(a =>
+    `<div class="additive-row" onclick="addAdditive('${a.code}')">
+      <span class="additive-code">${a.code}</span>
+      <span class="additive-name">${a.name}</span>
+    </div>`
+  ).join('');
+}
+window.filterAdditives = filterAdditives;
+
+function showAdditivesList() {
+  const q = document.getElementById('lib-additives-search').value;
+  if (q.trim()) filterAdditives(q);
+}
+window.showAdditivesList = showAdditivesList;
+
+function addAdditive(code) {
+  if (!selectedAdditives.includes(code)) {
+    selectedAdditives.push(code);
+    syncAdditivesHidden();
+    renderAdditiveChips();
+  }
+  document.getElementById('lib-additives-search').value = '';
+  document.getElementById('additives-dropdown').style.display = 'none';
+  document.getElementById('lib-additives-search').focus();
+}
+window.addAdditive = addAdditive;
+
+function removeAdditive(code) {
+  selectedAdditives = selectedAdditives.filter(c => c !== code);
+  syncAdditivesHidden();
+  renderAdditiveChips();
+}
+window.removeAdditive = removeAdditive;
+
+function syncAdditivesHidden() {
+  document.getElementById('lib-additives').value = selectedAdditives.join(',');
+}
+
+function renderAdditiveChips() {
+  const el = document.getElementById('additives-chips');
+  el.innerHTML = selectedAdditives.map(code => {
+    const entry = ADDITIVES_DB.find(a => a.code === code);
+    const label = entry ? `${code} · ${entry.name.split('(')[0].trim()}` : code;
+    return `<span class="additive-chip">${label}<button onclick="removeAdditive('${code}')" title="Quitar">✕</button></span>`;
+  }).join('');
+}
+
+function loadAdditivesFromString(str) {
+  selectedAdditives = str ? str.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  renderAdditiveChips();
+  syncAdditivesHidden();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#lib-additives-search') && !e.target.closest('#additives-dropdown')) {
+    const dd = document.getElementById('additives-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+
+// ── MARCAS ──
+const BRANDS_DB = [
+  // Supermercados propios / marca blanca
+  'Hacendado (Mercadona)', 'Deliplus (Mercadona)', 'Bosque Verde (Mercadona)',
+  'Dia', 'Bonté (Dia)', 'As (Dia)',
+  'Carrefour', 'Carrefour Bio', 'Carrefour Selection', 'Carrefour Kids',
+  'Lidl', 'Milbona (Lidl)', 'Favorina (Lidl)', 'Bio Organic (Lidl)', 'Saskia (Lidl)',
+  'Aldi', 'Gut Bio (Aldi)', 'Cucina (Aldi)',
+  'El Corte Inglés', 'Aliada (El Corte Inglés)',
+  'Hipercor', 'Spar', 'Condis', 'Eroski', 'Caprabo', 'Alcampo', 'Simply', 'BM Supermercados',
+  // Marcas de gran consumo - lácteos
+  'Danone', 'Activia', 'Actimel', 'Alpro', 'Oatly', 'Leche Pascual', 'Puleva',
+  'Central Lechera Asturiana', 'Kaiku', 'Nestlé', 'President', 'Président',
+  'Philadelphia', 'Queso El Pastor', 'Arias', 'Larsa',
+  // Carnes y embutidos
+  'Campofrío', 'ElPozo', 'Oscar Mayer', 'Argal', 'Navidul', 'Casa Tarradellas',
+  'Vall Companys', 'Coren', 'Selecta', 'Revilla',
+  // Aceites
+  'Carbonell', 'Hojiblanca', 'Borges', 'Koipe', 'Sovena', 'La Española',
+  // Conservas y salsas
+  'Heinz', 'Knorr', 'Hellmann\'s', 'Calvé', 'Ducros', 'Orlando', 'Hida',
+  'Calvo', 'Isabel', 'Jealsa / Rianxeira', 'Ortiz', 'Pescanova',
+  // Cereales y pasta
+  'Kellogg\'s', 'Nestlé Cereals', 'Quaker', 'La Molisana', 'Barilla', 'Gallo', 'Pastas Romero',
+  'Bimbo', 'Panrico', 'Silueta', 'Wasa',
+  // Bebidas
+  'Coca-Cola', 'PepsiCo', 'Nestea', 'Aquarius', 'Font Vella', 'Bezoya',
+  'Solán de Cabras', 'Mahou', 'Estrella Damm', 'Estrella Galicia',
+  'Don Simón', 'Granini', 'Tropicana', 'Minute Maid',
+  // Snacks y dulces
+  'Lay\'s', 'Ruffles', 'Pringles', 'Doritos', 'Risketos', 'Torres',
+  'Oreo', 'Príncipe', 'Milka', 'Nutella', 'Ferrero', 'Kinder',
+  'Haribo', 'Chupa Chups', 'Grefusa',
+  // Otros
+  'Hero', 'Heinz Baby', 'Aptamil', 'Nutriben', 'Nestlé Baby',
+  'Germinal', 'Natursoy', 'Veritas', 'Biocentury',
+];
+
+function filterBrands(q) {
+  const dd = document.getElementById('brand-dropdown');
+  const val = q.trim().toLowerCase();
+  const matches = val
+    ? BRANDS_DB.filter(b => b.toLowerCase().includes(val)).slice(0, 8)
+    : BRANDS_DB.slice(0, 8);
+
+  if (!matches.length && !val) { dd.style.display = 'none'; return; }
+
+  let rows = matches.map(b =>
+    `<div class="additive-row" onclick="selectBrand('${b.replace(/'/g,"\\'")}')">
+      ${b}
+    </div>`
+  ).join('');
+
+  // If typed value doesn't match exactly, offer to add it
+  const exactMatch = BRANDS_DB.some(b => b.toLowerCase() === val);
+  if (val && !exactMatch) {
+    rows += `<div class="additive-row" style="color:var(--accent)" onclick="selectBrand('${q.replace(/'/g,"\\'")}')">
+      ➕ Añadir "<strong>${q}</strong>"
+    </div>`;
+  }
+
+  dd.innerHTML = rows;
+  dd.style.display = 'block';
+}
+window.filterBrands = filterBrands;
+
+function selectBrand(name) {
+  document.getElementById('lib-brand').value = name;
+  document.getElementById('brand-dropdown').style.display = 'none';
+}
+window.selectBrand = selectBrand;
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#lib-brand') && !e.target.closest('#brand-dropdown')) {
+    const dd = document.getElementById('brand-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
