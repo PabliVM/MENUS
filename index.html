@@ -375,7 +375,44 @@ header {
       <div class="field" style="margin-bottom:0"><label>Fibra (g)</label><input type="number" id="lib-fiber" placeholder="0" min="0"/></div>
     </div>
 
-    <div class="field"><label>Observaciones</label><input type="text" id="lib-obs" placeholder="Sin gluten, ecológico…" maxlength="120"/></div>
+    <!-- Precio -->
+    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:12px">
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Precio</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field" style="margin-bottom:0"><label>Precio (€)</label><input type="number" id="lib-price" placeholder="1.99" min="0" step="0.01"/></div>
+        <div class="field" style="margin-bottom:0">
+          <label>Por</label>
+          <select id="lib-price-unit">
+            <option value="unidad">unidad</option>
+            <option value="kg">kg</option>
+            <option value="100g">100g</option>
+            <option value="g">g</option>
+            <option value="l">litro</option>
+            <option value="100ml">100ml</option>
+            <option value="ml">ml</option>
+            <option value="brick">brick</option>
+            <option value="bote">bote/tarro</option>
+            <option value="bolsa">bolsa</option>
+            <option value="docena">docena</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <label>% carne / contenido real</label>
+        <input type="number" id="lib-meat-pct" placeholder="Ej: 84" min="0" max="100" step="0.1"/>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Para cárnicos, embutidos, etc.</div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Aditivos (E-numbers)</label>
+        <input type="text" id="lib-additives" placeholder="E250, E300…" maxlength="120"/>
+        <div style="font-size:0.58rem;color:var(--muted);margin-top:3px">Separados por coma</div>
+      </div>
+    </div>
+
+    <div class="field"><label>Observaciones</label><textarea id="lib-obs" placeholder="Sin gluten, ecológico, alérgenos…" rows="2" style="resize:none"></textarea></div>
 
     <button class="btn btn-accent" id="lib-save-btn" onclick="saveLibIngredient()">Guardar ingrediente</button>
   </div>
@@ -1489,16 +1526,21 @@ async function saveLibIngredient() {
   const sat   = parseFloat(document.getElementById('lib-sat').value)   || 0;
   const salt  = parseFloat(document.getElementById('lib-salt').value)  || 0;
   const fiber = parseFloat(document.getElementById('lib-fiber').value) || 0;
-  const obs   = document.getElementById('lib-obs').value.trim();
+  const obs        = document.getElementById('lib-obs').value.trim();
+  const price      = parseFloat(document.getElementById('lib-price').value) || 0;
+  const priceUnit  = document.getElementById('lib-price-unit').value;
+  const meatPct    = parseFloat(document.getElementById('lib-meat-pct').value) || 0;
+  const additives  = document.getElementById('lib-additives').value.trim();
 
   const id = libEditId || Date.now().toString();
-  await window._saveIngLibToDb({ id, name, brand, cat, k, kj, p, c, sugar, f, sat, salt, fiber, obs });
+  await window._saveIngLibToDb({ id, name, brand, cat, k, kj, p, c, sugar, f, sat, salt, fiber, obs, price, priceUnit, meatPct, additives });
 
   if (libEditId) { cancelLibEdit(); toast('Ingrediente actualizado'); }
   else {
-    ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs']
+    ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct','lib-additives']
       .forEach(i => document.getElementById(i).value = '');
     document.getElementById('lib-cat').value = '';
+    document.getElementById('lib-price-unit').value = 'unidad';
     document.getElementById('lib-name').focus();
     toast(`⭐ "${name}" guardado`);
   }
@@ -1520,7 +1562,11 @@ function editLibIngredient(id) {
   document.getElementById('lib-sat').value   = item.sat   || '';
   document.getElementById('lib-salt').value  = item.salt  || '';
   document.getElementById('lib-fiber').value = item.fiber || '';
-  document.getElementById('lib-obs').value   = item.obs   || '';
+  document.getElementById('lib-obs').value        = item.obs       || '';
+  document.getElementById('lib-price').value      = item.price     || '';
+  document.getElementById('lib-price-unit').value = item.priceUnit || 'unidad';
+  document.getElementById('lib-meat-pct').value   = item.meatPct   || '';
+  document.getElementById('lib-additives').value  = item.additives || '';
   document.getElementById('lib-form-label').textContent = 'Editar ingrediente';
   document.getElementById('lib-cancel-btn').style.display = 'inline-flex';
   document.getElementById('lib-save-btn').textContent = 'Actualizar ingrediente';
@@ -1530,9 +1576,10 @@ window.editLibIngredient = editLibIngredient;
 
 function cancelLibEdit() {
   libEditId = null;
-  ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs']
+  ['lib-name','lib-brand','lib-k','lib-kj','lib-p','lib-c','lib-sugar','lib-f','lib-sat','lib-salt','lib-fiber','lib-obs','lib-price','lib-meat-pct','lib-additives']
     .forEach(i => document.getElementById(i).value = '');
   document.getElementById('lib-cat').value = '';
+  document.getElementById('lib-price-unit').value = 'unidad';
   document.getElementById('lib-form-label').textContent = 'Nuevo ingrediente';
   document.getElementById('lib-cancel-btn').style.display = 'none';
   document.getElementById('lib-save-btn').textContent = 'Guardar ingrediente';
@@ -1580,6 +1627,9 @@ function renderLibList() {
           ${item.f  ? `<span class="macro-tag fat">G:${item.f}g</span>` : ''}
           ${item.fiber ? `<span class="macro-tag" style="color:var(--muted)">Fib:${item.fiber}g</span>` : ''}
           ${item.salt  ? `<span class="macro-tag" style="color:var(--muted)">Sal:${item.salt}g</span>` : ''}
+          ${item.price     ? `<span class="macro-tag" style="color:var(--accent2)">💶 ${item.price}€/${item.priceUnit||'u'}</span>` : ''}
+          ${item.meatPct   ? `<span class="macro-tag" style="color:#e8836d">🥩 ${item.meatPct}% carne</span>` : ''}
+          ${item.additives ? `<span class="macro-tag" style="color:var(--muted)">E: ${item.additives}</span>` : ''}
           <span style="font-size:0.6rem;color:var(--muted)">por 100g</span>
         </div>
       </div>
