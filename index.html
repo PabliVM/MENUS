@@ -186,8 +186,12 @@ header {
 .cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .cat-item { padding: 11px 12px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer; transition: border-color 0.15s; }
 .cat-item:active { border-color: var(--accent2); }
-.cat-item-name { font-size: 0.84rem; font-weight: 500; margin-bottom: 3px; }
-.cat-item-macros { font-size: 0.63rem; color: var(--muted); }
+.cat-item-saved { background: rgba(74,158,107,0.08); border-color: rgba(74,158,107,0.3); position: relative; }
+.cat-item-saved .cat-item-name::before { content: '★ '; color: var(--accent2); font-size: 0.75rem; }
+.cat-item-del { position: absolute; top: 6px; right: 6px; background: none; border: none; color: var(--muted); font-size: 0.7rem; cursor: pointer; padding: 2px 5px; font-family: 'Instrument Sans', sans-serif; }
+.cat-item-del:active { color: var(--red); }
+.save-toggle { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 8px; margin-top: 10px; cursor: pointer; font-size: 0.82rem; }
+.save-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent2); flex-shrink: 0; }
 
 .empty { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 36px 0; line-height: 2.2; }
 
@@ -354,9 +358,12 @@ function startListeners() {
     if (window._activeView === 'historial') window.renderHistorial();
     if (window._activeView === 'stats')     window.renderStats();
   });
+  // Ingredient library
+  onSnapshot(collection(db, 'ingLib'), snap => {
+    window._ingLib = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => a.name.localeCompare(b.name));
+  });
 }
-
-// ── WRITE HELPERS ──
 window._saveDishToDb = async (dish) => {
   setSyncState('syncing', 'guardando…');
   await setDoc(doc(db, 'dishes', dish.id), dish);
@@ -384,6 +391,18 @@ window._clearHistoryInDb = async () => {
   snap.docs.forEach(d => batch.delete(d.ref));
   await batch.commit();
 };
+
+window._saveIngLibToDb = async (ing) => {
+  setSyncState('syncing', 'guardando…');
+  await setDoc(doc(db, 'ingLib', ing.id), ing);
+};
+
+window._deleteIngLibFromDb = async (id) => {
+  setSyncState('syncing', 'borrando…');
+  await deleteDoc(doc(db, 'ingLib', id));
+};
+
+window._ingLib = [];
 
 setSyncState('syncing', 'conectando…');
 startListeners();
@@ -626,8 +645,29 @@ function openCat(ingId) {
   catTarget = ingId;
   const r = ingRows.find(r=>r.id==ingId);
   document.getElementById('cat-title').textContent = r?.name ? `"${r.name}" — ¿qué es?` : '¿Qué tipo de alimento?';
+  renderCatBody();
+  document.getElementById('cat-overlay').classList.add('open');
+}
+window.openCat = openCat;
+
+function renderCatBody() {
   const body = document.getElementById('cat-body');
-  body.innerHTML = Object.entries(FOOD_DB).map(([group, items]) => `
+  const lib = window._ingLib || [];
+
+  const libHtml = lib.length ? `
+    <div class="cat-group">
+      <div class="cat-group-title">⭐ Mis ingredientes guardados</div>
+      <div class="cat-grid">
+        ${lib.map(item => `
+          <div class="cat-item cat-item-saved" style="position:relative" onclick="confirmCat(${JSON.stringify({name:item.name,p:item.p,c:item.c,f:item.f,k:item.k}).replace(/"/g,'&quot;')})">
+            <div class="cat-item-name">${item.name}</div>
+            <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
+            <button class="cat-item-del" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  const stdHtml = Object.entries(FOOD_DB).map(([group, items]) => `
     <div class="cat-group">
       <div class="cat-group-title">${group}</div>
       <div class="cat-grid">
@@ -637,8 +677,10 @@ function openCat(ingId) {
             <div class="cat-item-macros">🔥${item.k}k · P:${item.p}g · C:${item.c}g · G:${item.f}g</div>
           </div>`).join('')}
       </div>
-    </div>`).join('') +
-    `<div class="cat-group" style="margin-top:8px">
+    </div>`).join('');
+
+  const manualHtml = `
+    <div class="cat-group" style="margin-top:8px">
       <div class="cat-group-title">Introducir manualmente</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
         <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="m-k" placeholder="165" min="0" style="text-align:center"/></div>
@@ -646,18 +688,33 @@ function openCat(ingId) {
         <div class="field" style="margin-bottom:0"><label>Carb(g)</label><input type="number" id="m-c" placeholder="0" min="0" style="text-align:center"/></div>
         <div class="field" style="margin-bottom:0"><label>Gras(g)</label><input type="number" id="m-f" placeholder="5" min="0" style="text-align:center"/></div>
       </div>
-      <button class="btn btn-accent" onclick="confirmManual()">Confirmar macros manuales</button>
+      <label class="save-toggle">
+        <input type="checkbox" id="m-save" />
+        Guardar en mi biblioteca para usar en otras recetas
+      </label>
+      <button class="btn btn-accent" style="margin-top:8px" onclick="confirmManual()">Confirmar macros manuales</button>
     </div>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmCatNone()">Sin datos nutricionales</button>`;
-  document.getElementById('cat-overlay').classList.add('open');
+
+  body.innerHTML = libHtml + stdHtml + manualHtml;
 }
-window.openCat = openCat;
 
 function confirmCat(item) {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
   r.macros100 = { p:item.p, c:item.c, f:item.f, k:item.k };
   r.confirmed = true;
-  closeCat(); renderIngRows();
+  // Offer to save if not already in library
+  const lib = window._ingLib || [];
+  const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
+  closeCat();
+  renderIngRows();
+  if (!alreadySaved) {
+    setTimeout(() => {
+      if (confirm(`¿Guardar "${item.name}" en tu biblioteca para usarlo en otras recetas?`)) {
+        saveToIngLib({ name: item.name, p: item.p, c: item.c, f: item.f, k: item.k });
+      }
+    }, 200);
+  }
 }
 window.confirmCat = confirmCat;
 
@@ -670,9 +727,28 @@ function confirmManual() {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
   r.macros100 = { k, p, c, f };
   r.confirmed = true;
+  const shouldSave = document.getElementById('m-save')?.checked;
+  const ingName = r.name.trim();
   closeCat(); renderIngRows();
+  if (shouldSave && ingName) {
+    saveToIngLib({ name: ingName, k, p, c, f });
+  }
 }
 window.confirmManual = confirmManual;
+
+async function saveToIngLib(item) {
+  const id = Date.now().toString();
+  await window._saveIngLibToDb({ id, ...item });
+  toast(`⭐ "${item.name}" guardado en tu biblioteca`);
+}
+window.saveToIngLib = saveToIngLib;
+
+async function deleteIngLib(id) {
+  await window._deleteIngLibFromDb(id);
+  renderCatBody();
+  toast('Ingrediente eliminado de la biblioteca');
+}
+window.deleteIngLib = deleteIngLib;
 
 function confirmCatNone() {
   const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
