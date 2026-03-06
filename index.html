@@ -589,6 +589,7 @@ header {
         <button class="btn btn-ghost btn-sm" id="cancel-edit-btn" style="display:none" onclick="cancelEdit()">Cancelar</button>
       </div>
       <div class="field"><label>Nombre del plato</label><input id="f-name" type="text" placeholder="Ej: Pollo al horno con verduras" maxlength="50"/></div>
+      <div class="field" style="max-width:160px"><label>🍽 Raciones que salen</label><input id="f-servings" type="number" min="1" max="20" placeholder="Ej: 4" style="text-align:center"/></div>
       <div style="margin-bottom:8px; font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
       <div id="ing-list"></div>
       <button class="btn btn-ghost btn-sm" onclick="addIngRow()" style="margin-bottom:12px;width:100%">+ Ingrediente</button>
@@ -990,19 +991,30 @@ function delIng(id) { ingRows = ingRows.filter(r=>r.id!=id); renderIngRows(); }
 window.delIng = delIng;
 
 function updateMacroPreview() {
-  const m = calcMacros(ingRows);
+  const total = calcMacros(ingRows);
   const el = document.getElementById('macro-preview');
   const hasData = ingRows.some(r=>r.macros100);
+  const servings = Math.max(1, parseInt(document.getElementById('f-servings')?.value)||1);
+  const perRacion = {
+    p: Math.round(total.p/servings),
+    c: Math.round(total.c/servings),
+    f: Math.round(total.f/servings),
+    k: Math.round(total.k/servings),
+  };
   el.innerHTML = hasData
-    ? `<span class="macro-tag prot">P:${m.p}g</span>
-       <span class="macro-tag carb">C:${m.c}g</span>
-       <span class="macro-tag fat">G:${m.f}g</span>
-       <span class="macro-tag kcal">🔥${m.k}kcal</span>
-       <span style="font-size:0.62rem;color:var(--muted)">total del plato</span>`
+    ? `<div style="width:100%">
+         <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Por ración (${servings} ${servings===1?'ración':'raciones'})</div>
+         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+           <span class="macro-tag prot">P:${perRacion.p}g</span>
+           <span class="macro-tag carb">C:${perRacion.c}g</span>
+           <span class="macro-tag fat">G:${perRacion.f}g</span>
+           <span class="macro-tag kcal">🔥${perRacion.k}kcal</span>
+         </div>
+         <div style="font-size:0.6rem;color:var(--muted)">Total receta: 🔥${total.k}kcal · P:${total.p}g · C:${total.c}g · G:${total.f}g</div>
+       </div>`
     : `<span style="font-size:0.7rem;color:var(--muted)">Pulsa "? tipo" en cada ingrediente para confirmar y calcular macros</span>`;
-  // Append full NS table if there's data
   if (hasData) {
-    el.innerHTML += nsTableFull(m);
+    el.innerHTML += nsTableFull(perRacion);
   }
 }
 
@@ -1241,11 +1253,17 @@ async function saveDish() {
   if (!name) { document.getElementById('f-name').focus(); return; }
   const prep  = document.getElementById('f-prep').value.trim();
   const url   = document.getElementById('f-url').value.trim();
+  const servings = Math.max(1, parseInt(document.getElementById('f-servings').value)||1);
   const ings  = ingRows.filter(r=>r.name.trim());
-  const macros = calcMacros(ings);
+  const totalMacros = calcMacros(ings);
+  // Macros por ración
+  const macros = totalMacros.k
+    ? { p: Math.round(totalMacros.p/servings), c: Math.round(totalMacros.c/servings),
+        f: Math.round(totalMacros.f/servings), k: Math.round(totalMacros.k/servings) }
+    : null;
   const id = editId || Date.now().toString();
 
-  const dish = { id, name, prep, url, ingredients: ings, macros };
+  const dish = { id, name, prep, url, servings, ingredients: ings, macros };
   await window._saveDishToDb(dish);
 
   if (editId) { cancelEdit(); toast('Plato actualizado'); showRecetasLanding(); }
@@ -1253,6 +1271,7 @@ async function saveDish() {
     document.getElementById('f-name').value='';
     document.getElementById('f-prep').value='';
     document.getElementById('f-url').value='';
+    document.getElementById('f-servings').value='';
     ingRows=[]; renderIngRows();
     toast('✅ Plato guardado — consulta tus recetas para verlo');
   }
@@ -1265,6 +1284,7 @@ function editDish(id) {
   document.getElementById('f-name').value = d.name;
   document.getElementById('f-prep').value = d.prep||'';
   document.getElementById('f-url').value  = d.url||'';
+  document.getElementById('f-servings').value = d.servings||1;
   ingRows = (d.ingredients||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}));
   renderIngRows();
   document.getElementById('form-mode-label').textContent = 'Editar plato';
@@ -1279,6 +1299,7 @@ function cancelEdit() {
   document.getElementById('f-name').value='';
   document.getElementById('f-prep').value='';
   document.getElementById('f-url').value='';
+  document.getElementById('f-servings').value='';
   ingRows=[]; renderIngRows();
   document.getElementById('form-mode-label').textContent='Nuevo plato';
   document.getElementById('cancel-edit-btn').style.display='none';
@@ -2576,6 +2597,7 @@ document.addEventListener('click', e => {
 
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
+document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
 renderIngRows();
 // Arrancar en Recetas
 switchView('recetas');
