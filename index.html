@@ -1,3 +1,55 @@
+function renderMeals() {
+  const profiles = window._profiles || [];
+  const container = document.getElementById('meals-container');
+
+  container.innerHTML = MEALS.map(({id:meal, label, icon}) => {
+    const sharedEntries = window._week[sk(selDay, meal, 'all')] || [];
+
+    const buildDishRows = (entries, profileId) => entries.map(e => {
+      if (e?.free) return `<div class="meal-dish">
+          <span class="meal-dish-name">📝 ${e.name}</span>
+          <button class="meal-dish-del" onclick="removeFromSlot(${selDay},'${meal}','${e.id}','${profileId}')">✕</button>
+        </div>`;
+      const d = gd(typeof e==='string'?e:e.id);
+      if (!d) return '';
+      const ov = slotOverrides(e);
+      const oc = Object.values(ov).filter(v=>v!=='original').length;
+      return `<div class="meal-dish">
+        <span class="meal-dish-name">🍽 ${d.name}${oc?`<span style="font-size:0.6rem;color:var(--accent2);margin-left:4px">✎${oc}</span>`:''}
+        </span>
+        <span class="meal-dish-cal">${d.macros?.k?d.macros.k+'k':''}</span>
+        <button class="meal-dish-del" onclick="removeFromSlot(${selDay},'${meal}','${d.id}','${profileId}')">✕</button>
+      </div>`;
+    }).join('');
+
+    let sectionsHTML = '';
+    if (profiles.length === 0) {
+      sectionsHTML = buildDishRows(sharedEntries, 'all') +
+        `<button class="meal-add-btn" style="margin-top:4px" onclick="openPicker(${selDay},'${meal}','all')">+ Añadir</button>`;
+    } else {
+      sectionsHTML = profiles.map((profile, i) => {
+        const entries = window._week[sk(selDay, meal, profile.id)] || [];
+        const allEntries = i === 0 ? [...sharedEntries, ...entries] : entries;
+        const dishRows = buildDishRows(allEntries, profile.id);
+        return `<div class="profile-meal-section" ${i===0?'':'style="border-top:1px dashed var(--border2)"'}>
+          <div class="profile-meal-header">
+            <div class="profile-meal-dot" style="background:${profile.color}"></div>
+            <span class="profile-meal-name" style="color:${profile.color}">${profile.name}</span>
+            <button class="meal-add-btn" style="border-color:${profile.color}55;color:${profile.color};margin-left:auto;padding:2px 8px;font-size:0.72rem"
+              onclick="openPicker(${selDay},'${meal}','${profile.id}')">+</button>
+          </div>
+          ${dishRows || '<div style="font-size:0.7rem;color:var(--muted);padding:1px 0 4px">—</div>'}
+        </div>`;
+      }).join('');
+    }
+
+    return `<div class="meal-section">
+      <div class="meal-header"><span class="meal-label">${icon} ${label}</span></div>
+      ${sectionsHTML}
+    </div>`;
+  }).join('');
+}
+window.renderMeals = renderMeals;
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -254,6 +306,21 @@ header {
 .toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border2); color: var(--ink); padding: 10px 18px; border-radius: 20px; font-size: 0.8rem; z-index: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
 .toast.show { opacity: 1; }
 
+
+/* ── GRUPOS ── */
+.group-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:12px; font-size:0.68rem; font-weight:600; }
+.group-members { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.member-toggle { padding:4px 10px; border-radius:10px; font-size:0.68rem; border:1.5px solid var(--border2); background:var(--surface2); color:var(--muted); cursor:pointer; transition:all 0.12s; }
+.member-toggle.on { border-color:currentColor; background:rgba(255,255,255,0.08); font-weight:600; }
+
+/* dest-row removed */
+
+/* ── VISTA TODOS: cards apiladas ── */
+/* person-day-card removed */
+
+/* ── PERSON TAB con icono grupo ── */
+.person-tab-group { border-radius:20px !important; }
+
 /* LANDING OPTIONS */
 .landing-options { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .landing-card {
@@ -327,6 +394,28 @@ header {
 .stats-person-name { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 .stats-person-kcal { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--accent); display: block; }
 .stats-person-sub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+
+/* ── SEMÁFORO NUTRICIONAL ── */
+.ns-table { width:100%; border-collapse:collapse; margin-top:8px; font-size:0.7rem; }
+.ns-table td { padding:3px 6px; }
+.ns-table td:first-child { color:var(--muted); font-size:0.68rem; }
+.ns-table td:last-child { text-align:right; font-weight:600; }
+.ns-tr-green td:last-child { color:#4caf50; }
+.ns-tr-yellow td:last-child { color:#e6b800; }
+.ns-tr-red td:last-child { color:#f44336; }
+.ns-bar { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.ns-pill { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:8px;
+  font-size:0.6rem; font-weight:600; }
+.ns-pill.green { background:#4caf5022; color:#4caf50; }
+.ns-pill.yellow { background:#e6b80022; color:#e6b800; }
+.ns-pill.red { background:#f4433622; color:#f44336; }
+.ns-dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+/* ── PERFILES EN COMIDAS ── */
+.profile-meal-section { padding:6px 0 4px; }
+.profile-meal-header { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+.profile-meal-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.profile-meal-name { font-size:0.65rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
+
 </style>
 </head>
 <body>
@@ -653,14 +742,19 @@ header {
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title">
-      <span>Personas</span>
+      <span>Perfiles</span>
       <button class="sheet-close" onclick="closePersonConfig()">✕</button>
     </div>
-    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:14px">Define quién va a comer. El menú familiar es compartido por defecto; puedes asignar platos específicos a una persona.</div>
+    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px">
+      Define los perfiles que aparecerán en cada comida. Ej: Adultos, Manuela, Bebé.
+    </div>
     <div id="person-list-config"></div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px">
-      <div class="field" style="margin-bottom:0"><input id="new-person-name" type="text" placeholder="Nombre (ej: Bebé, Papá…)" maxlength="20" onkeydown="if(event.key==='Enter')addPerson()"/></div>
-      <button class="btn btn-accent btn-sm" onclick="addPerson()" style="width:auto">Añadir</button>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px">
+      <div class="field" style="margin-bottom:0">
+        <input id="new-person-name" type="text" placeholder="Ej: Adultos, Bebé, Pablo…" maxlength="20"
+          onkeydown="if(event.key==='Enter')addProfile()"/>
+      </div>
+      <button class="btn btn-accent btn-sm" onclick="addProfile()" style="width:auto">+ Añadir</button>
     </div>
   </div>
 </div>
@@ -760,10 +854,11 @@ function startListeners() {
     if (window._activeView === 'historial') window.renderHistorial();
     if (window._activeView === 'stats')     window.renderStats();
   });
-  // Persons
-  onSnapshot(doc(db, 'state', 'persons'), snap => {
-    window._persons = snap.exists() ? (snap.data().list || []) : [{ id:'all', name:'Todos', color:'#e8a327' }];
+  // Profiles
+  onSnapshot(doc(db, 'state', 'profiles'), snap => {
+    window._profiles = snap.exists() ? (snap.data().list || []) : [];
     if (window._activeView === 'semana') window.renderSemana();
+    if (document.getElementById('person-overlay')?.classList.contains('open')) renderProfileListConfig();
   });
 
   // Extra shop items
@@ -829,10 +924,10 @@ window._deleteShopExtra = async (id) => {
 };
 window._shopExtra = [];
 
-window._savePersons = async (list) => {
-  await setDoc(doc(db, 'state', 'persons'), { list });
+window._saveProfiles = async (list) => {
+  await setDoc(doc(db, 'state', 'profiles'), { list });
 };
-window._persons = [{ id:'all', name:'Todos', color:'#e8a327' }];
+window._profiles = [];
 
 setSyncState('syncing', 'conectando…');
 startListeners();
@@ -1454,7 +1549,7 @@ window.renderDishList = renderDishList;
 function calcWeekTotals() {
   let k=0, pr=0, ids=new Set();
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
-    const pids = ['all', ...(window._persons||[]).map(p=>p.id)];
+    const pids = ['all', ...(window._profiles||[]).map(p=>p.id)];
     pids.forEach(pid => {
       (window._week[sk(d,m,pid)]||[]).forEach(entry => {
         const dish=gd(slotId(entry)); if(!dish) return;
@@ -1474,8 +1569,8 @@ function renderSemana() {
 window.renderSemana = renderSemana;
 
 function renderPersonTabs() {
-  const persons = window._persons || [];
-  const all = [{ id:'all', name:'Todos', color:'#e8a327' }, ...persons];
+  const profiles = window._profiles || [];
+  const all = [{ id:'all', name:'Todos', color:'#e8a327' }, ...profiles];
   document.getElementById('person-tabs').innerHTML = all.map(p => {
     const active = selPerson === p.id;
     return `<button class="person-tab ${active?'active':''}"
@@ -1535,7 +1630,7 @@ function renderDayScroll() {
     const date = new Date(mon); date.setDate(mon.getDate()+i);
     const dayNum = date.getDate();
     const pids = selPerson==='all'
-      ? ['all',...(window._persons||[]).map(p=>p.id)]
+      ? ['all',...(window._profiles||[]).map(p=>p.id)]
       : ['all', selPerson];
     const has = MEALS.some(({id:m}) => pids.some(pid=>(window._week[sk(i,m,pid)]||[]).length>0));
     return `<div class="day-chip ${i===selDay?'active':''}" onclick="selDay=${i};renderSemana()">
@@ -1546,7 +1641,7 @@ function renderDayScroll() {
 
 function renderMeals() {
   const showPids = selPerson==='all'
-    ? ['all', ...(window._persons||[]).map(p=>p.id)]
+    ? ['all', ...(window._profiles||[]).map(p=>p.id)]
     : ['all', selPerson];
 
   document.getElementById('meals-container').innerHTML = MEALS.map(({id:meal, label, icon}) => {
@@ -1561,7 +1656,7 @@ function renderMeals() {
         return { dish, overrides, overrideCount, entry: e };
       }).filter(Boolean);
       if (!slotDishes.length) return;
-      const person = pid==='all' ? null : (window._persons||[]).find(p=>p.id===pid);
+      const person = pid==='all' ? null : (window._profiles||[]).find(p=>p.id===pid);
       const badge = person ? `<span class="person-badge" style="background:${person.color}22;color:${person.color}">${person.name}</span>` : '';
       dishRows += slotDishes.map(({dish:d, overrideCount})=>`
         <div class="meal-dish">
@@ -1574,7 +1669,7 @@ function renderMeals() {
 
     const addBtns = selPerson==='all'
       ? `<button class="meal-add-btn" onclick="openPicker(${selDay},'${meal}','all')">+ Todos</button>
-         ${(window._persons||[]).map(p=>`<button class="meal-add-btn" style="border-color:${p.color}55;color:${p.color}" onclick="openPicker(${selDay},'${meal}','${p.id}')">+ ${p.name}</button>`).join('')}`
+         ${(window._profiles||[]).map(p=>`<button class="meal-add-btn" style="border-color:${p.color}55;color:${p.color}" onclick="openPicker(${selDay},'${meal}','${p.id}')">+ ${p.name}</button>`).join('')}`
       : `<button class="meal-add-btn" onclick="openPicker(${selDay},'${meal}','${selPerson}')">+ Añadir</button>`;
 
     return `<div class="meal-card ${meal}">
@@ -1604,7 +1699,7 @@ async function saveWeek() {
   const label=`${fmt(mon)} – ${fmt(sun)}`;
   const slots={};
   for(let d=0;d<7;d++) MEALS.forEach(({id:m})=>{
-    const pids=['all',...(window._persons||[]).map(p=>p.id)];
+    const pids=['all',...(window._profiles||[]).map(p=>p.id)];
     pids.forEach(pid=>{
       const key=sk(d,m,pid);
       slots[key]=(window._week[key]||[]).map(entry=>{
@@ -1619,63 +1714,63 @@ async function saveWeek() {
 }
 window.saveWeek = saveWeek;
 
-// ── PERSONS CONFIG ──
+// ── PROFILES CONFIG ──
 function openPersonConfig() {
-  renderPersonListConfig();
+  renderProfileListConfig();
   document.getElementById('person-overlay').classList.add('open');
 }
 window.openPersonConfig = openPersonConfig;
 
-function renderPersonListConfig() {
-  const persons = window._persons || [];
+function renderProfileListConfig() {
+  const profiles = window._profiles || [];
   const el = document.getElementById('person-list-config');
-  if (!persons.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;margin-bottom:12px">Sin personas adicionales. Todos comparten el mismo menú.</div>';
+  if (!profiles.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Sin perfiles. Añade el primero.</div>';
     return;
   }
-  el.innerHTML = persons.map(p => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:8px;margin-bottom:6px">
-      <span style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-      <input type="text" value="${p.name}"
-        style="flex:1;background:none;border:none;color:var(--ink);font-family:'Instrument Sans',sans-serif;font-size:0.88rem;outline:none"
-        onchange="renamePerson('${p.id}',this.value)"/>
-      <button class="btn btn-danger btn-sm" onclick="deletePerson('${p.id}')">✕</button>
+  el.innerHTML = profiles.map((p, i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:9px 12px;
+      background:var(--surface2);border-radius:10px;border:1.5px solid ${p.color}44">
+      <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+      <span style="flex:1;font-size:0.85rem;font-weight:600;color:${p.color}">${p.name}</span>
+      <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:0.65rem"
+        onclick="moveProfile(${i},-1)" ${i===0?'disabled':''}>↑</button>
+      <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:0.65rem"
+        onclick="moveProfile(${i},1)" ${i===profiles.length-1?'disabled':''}>↓</button>
+      <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem"
+        onclick="removeProfile('${p.id}')">✕</button>
     </div>`).join('');
 }
+window.renderProfileListConfig = renderProfileListConfig;
 
-async function addPerson() {
+async function addProfile() {
   const input = document.getElementById('new-person-name');
   const name = input.value.trim(); if (!name) return;
-  const COLORS = ['#e8836d','#6db4e8','#a87de8','#4a9e6b','#e8c06d'];
-  const persons = window._persons || [];
-  const color = COLORS[persons.length % COLORS.length];
-  await window._savePersons([...persons, { id:Date.now().toString(), name, color }]);
+  const profiles = window._profiles || [];
+  const PCOLS = ['#e8836d','#6db4e8','#a87de8','#4a9e6b','#e8c06d','#e8a327'];
+  const color = PCOLS[profiles.length % PCOLS.length];
+  const id = 'prf' + Date.now();
+  await window._saveProfiles([...profiles, { id, name, color }]);
   input.value = '';
-  renderPersonListConfig();
-  toast(`✅ "${name}" añadido`);
 }
-window.addPerson = addPerson;
+window.addProfile = addProfile;
 
-async function renamePerson(id, name) {
-  const persons = (window._persons||[]).map(p=>p.id===id?{...p,name}:p);
-  await window._savePersons(persons);
+async function removeProfile(id) {
+  await window._saveProfiles((window._profiles||[]).filter(p=>p.id!==id));
 }
-window.renamePerson = renamePerson;
+window.removeProfile = removeProfile;
 
-async function deletePerson(id) {
-  if (!confirm('¿Eliminar esta persona?')) return;
-  await window._savePersons((window._persons||[]).filter(p=>p.id!==id));
-  const newWeek = {...window._week};
-  Object.keys(newWeek).forEach(k=>{ if(k.endsWith('-'+id)) delete newWeek[k]; });
-  await window._saveWeekToDb(newWeek);
-  if (selPerson===id) selPerson='all';
-  renderPersonListConfig();
-  toast('Persona eliminada');
+async function moveProfile(idx, dir) {
+  const profiles = [...(window._profiles||[])];
+  const ni = idx + dir;
+  if (ni < 0 || ni >= profiles.length) return;
+  [profiles[idx], profiles[ni]] = [profiles[ni], profiles[idx]];
+  await window._saveProfiles(profiles);
 }
-window.deletePerson = deletePerson;
+window.moveProfile = moveProfile;
 
 function closePersonConfig(e) {
-  if (e && e.target!==document.getElementById('person-overlay')) return;
+  if (e && e.target !== document.getElementById('person-overlay')) return;
   document.getElementById('person-overlay').classList.remove('open');
 }
 window.closePersonConfig = closePersonConfig;
@@ -1711,7 +1806,7 @@ function inferCat(name) {
 
 function buildShoppingList() {
   const totals = {};
-  const pids = ['all', ...(window._persons||[]).map(p=>p.id)];
+  const pids = ['all', ...(window._profiles||[]).map(p=>p.id)];
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
     pids.forEach(pid => {
       (window._week[sk(d,m,pid)]||[]).forEach(entry => {
@@ -1904,8 +1999,8 @@ let statsPersonFilter = 'all';
 function renderStatsPersonFilter() {
   const el = document.getElementById('stats-person-filter');
   if (!el) return;
-  const persons = window._persons || [];
-  const all = [{id:'all', name:'Todos', color:'var(--accent)'},...persons];
+  const profiles = window._profiles || [];
+  const all = [{id:'all', name:'Todos', color:'var(--accent)'},...profiles];
   el.innerHTML = all.map(p => {
     const active = statsPersonFilter === p.id;
     return `<button class="filter-chip ${active?'active':''}"
@@ -1953,8 +2048,8 @@ function renderStats() {
   const maxC = sorted[0]?.[1]||1;
 
   // Comparación entre personas
-  const persons = window._persons||[];
-  const personCompare = persons.length > 0 ? `
+  const profiles = window._profiles||[];
+  const personCompare = profiles.length > 0 ? `
     <div class="sec-title" style="margin-top:4px">Comparativa</div>
     <div class="stats-compare-grid">
       <div class="stats-person-card">
@@ -1962,7 +2057,7 @@ function renderStats() {
         <span class="stats-person-kcal">${avgK?Math.round(avgK/7):'—'}</span>
         <div class="stats-person-sub">kcal/día prom</div>
       </div>
-      ${persons.map(p => {
+      ${profiles.map(p => {
         const pKcals = history.slice(0,8).map(h => getStatsKcalForPerson(h, p.id));
         const pAvg = pKcals.reduce((a,b)=>a+b,0)/(pKcals.length||1);
         return `<div class="stats-person-card" style="border-color:${p.color}44">
@@ -2003,21 +2098,35 @@ function renderStats() {
 window.renderStats = renderStats;
 
 // ── PICKER ──
-function openPicker(dayIdx, meal, pid='all') {
-  pickerTarget={dayIdx, meal, pid};
-  const key=sk(dayIdx,meal,pid);
-  const assigned=(window._week[key]||[]).map(slotId);
-  const person = pid==='all' ? null : (window._persons||[]).find(p=>p.id===pid);
-  const personLabel = person ? ` · ${person.name}` : ' · Todos';
+function openPicker(dayIdx, meal, profileId='all') {
+  pickerTarget = { dayIdx, meal, pid: profileId };
+  const profile = (window._profiles||[]).find(p=>p.id===profileId);
   const mealObj = MEALS.find(m=>m.id===meal);
-  document.getElementById('picker-title').textContent=`${DAYS[dayIdx]} ${mealObj?.icon||''} ${mealObj?.label||meal}${personLabel}`;
-  const list=document.getElementById('picker-list');
-  const dishes=window._dishes||[];
-  list.innerHTML=!dishes.length
-    ? '<div class="empty">Crea platos primero en "Platos"</div>'
-    : dishes.map(d=>{
-        const used=assigned.includes(d.id);
-        const m=d.macros||{};
+  document.getElementById('picker-title').textContent =
+    `${DAYS[dayIdx]} · ${mealObj?.icon||''} ${mealObj?.label||meal}${profile?' · '+profile.name:''}`;
+
+  const key = sk(dayIdx, meal, profileId);
+  const assigned = (window._week[key]||[]).map(e => typeof e==='string'?e:(e.id||''));
+
+  const list = document.getElementById('picker-list');
+  const dishes = window._dishes || [];
+
+  list.innerHTML = `<div style="margin-bottom:14px">
+    <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Añadir libremente</div>
+    <div style="display:flex;gap:8px">
+      <input id="picker-free-text" type="text" placeholder="Ej: Tortilla francesa…"
+        style="flex:1;padding:9px 12px;background:var(--surface2);border:1px solid var(--border2);
+        border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.82rem"
+        onkeydown="if(event.key==='Enter')addFreeTextDish()"/>
+      <button class="btn btn-accent btn-sm" onclick="addFreeTextDish()">+ Añadir</button>
+    </div>
+  </div>
+  <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Mis recetas</div>
+  ${!dishes.length
+    ? '<div class="empty" style="font-size:0.8rem">Crea platos primero en Recetas</div>'
+    : dishes.map(d => {
+        const used = assigned.includes(d.id);
+        const m = d.macros || {};
         return `<div class="picker-item ${used?'used':''}" onclick="pickDish('${d.id}')">
           <div style="flex:1">
             <div style="font-size:0.88rem;font-weight:500">🍽 ${d.name}</div>
@@ -2025,10 +2134,34 @@ function openPicker(dayIdx, meal, pid='all') {
           </div>
           ${used?'<span style="color:var(--accent2)">✓</span>':'<span style="color:var(--muted)">→</span>'}
         </div>`;
-      }).join('');
+      }).join('')}`;
+
   document.getElementById('picker-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('picker-free-text')?.focus(), 200);
 }
 window.openPicker = openPicker;
+
+async function addFreeTextDish() {
+  const input = document.getElementById('picker-free-text');
+  const name = input.value.trim(); if (!name || !pickerTarget) return;
+  const { dayIdx, meal, pid } = pickerTarget;
+  const key = sk(dayIdx, meal, pid);
+  const newWeek = {...window._week};
+  if (!newWeek[key]) newWeek[key] = [];
+  newWeek[key].push({ id: 'free_'+Date.now(), name, free: true });
+  await window._saveWeekToDb(newWeek);
+  document.getElementById('picker-overlay').classList.remove('open');
+  pickerTarget = null;
+  renderSemana();
+}
+window.addFreeTextDish = addFreeTextDish;
+
+let _pickerStep = 'dest'; // 'dest' | 'dish'
+
+
+
+
+// Resolver qué pids reales corresponden a la selección (expandir grupos)
 
 let variantTarget = null; // { dishId, pickerTarget }
 let variantSelections = {}; // { ingName: libItem | 'original' }
@@ -2113,22 +2246,16 @@ window.skipVariants = skipVariants;
 async function commitPickDish(dishId, selections) {
   const target = variantTarget?.pickerTarget || pickerTarget;
   if (!target) return;
-  const key = sk(target.dayIdx, target.meal, target.pid);
+  const key = sk(target.dayIdx, target.meal, target.pid || 'all');
   const newWeek = {...window._week};
   if (!newWeek[key]) newWeek[key] = [];
-
-  // Store dishId + brand overrides as an object
-  const entry = Object.keys(selections).length
-    ? { id: dishId, brandOverrides: selections }
-    : dishId;
-
-  // Avoid duplicates (compare by id)
-  const alreadyIn = (newWeek[key] || []).some(e => (typeof e === 'string' ? e : e.id) === dishId);
+  const entry = Object.keys(selections).length ? { id: dishId, brandOverrides: selections } : dishId;
+  const alreadyIn = newWeek[key].some(e => (typeof e==='string'?e:e.id) === dishId);
   if (!alreadyIn) newWeek[key].push(entry);
-
   await window._saveWeekToDb(newWeek);
-  pickerTarget = null;
-  variantTarget = null;
+  document.getElementById('picker-overlay').classList.remove('open');
+  pickerTarget = null; variantTarget = null;
+  renderSemana();
 }
 window.commitPickDish = commitPickDish;
 
@@ -2273,7 +2400,7 @@ function renderLibList() {
           ${item.additives ? `<span class="macro-tag" style="color:var(--muted)">E: ${item.additives}</span>` : ''}
           <span style="font-size:0.6rem;color:var(--muted)">por 100g</span>
         </div>
-        ${nsBadgeCompact(item)}
+        ${nsTableFull(item)}
       </div>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteIngLib('${item.id}')">✕</button>
     </div>`).join('');
@@ -2330,7 +2457,7 @@ function renderRecetas() {
           ${m.f ? `<span class="macro-tag fat">G:${m.f}g</span>` : ''}
           ${ingCount ? `<span class="macro-tag" style="color:var(--muted)">${ingCount} ing.</span>` : ''}
         </div>
-        ${nsBadgeCompact(m)}
+        ${nsTableFull(m)}
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
         <span style="color:var(--muted);font-size:0.85rem">→</span>
@@ -2356,14 +2483,14 @@ window.openReceta = openReceta;
 
 // ── NUTRI SCORE ──
 const NS_THRESHOLDS = {
-  k:    { label:'Calorías',     unit:'kcal', lo:200,  hi:400,  invert:false },
-  p:    { label:'Proteínas',    unit:'g',    lo:5,    hi:15,   invert:true  },
-  c:    { label:'Hidratos',     unit:'g',    lo:5,    hi:20,   invert:false },
-  sugar:{ label:'Azúcares',     unit:'g',    lo:5,    hi:12.5, invert:false },
-  f:    { label:'Grasas',       unit:'g',    lo:3,    hi:17,   invert:false },
-  sat:  { label:'Grasas sat.',  unit:'g',    lo:1.5,  hi:5,    invert:false },
-  fiber:{ label:'Fibra',        unit:'g',    lo:3,    hi:6,    invert:true  },
-  salt: { label:'Sal',          unit:'g',    lo:0.3,  hi:1.5,  invert:false },
+  p:    { label:'Proteínas',        unit:'g',    lo:5,    hi:15,   invert:true  },
+  c:    { label:'Carbohidratos',    unit:'g',    lo:5,    hi:20,   invert:false },
+  f:    { label:'Grasas totales',   unit:'g',    lo:3,    hi:17,   invert:false },
+  sat:  { label:'Grasas saturadas', unit:'g',    lo:1.5,  hi:5,    invert:false },
+  sugar:{ label:'Azúcar',           unit:'g',    lo:5,    hi:10,   invert:false },
+  salt: { label:'Sal',              unit:'g',    lo:0.3,  hi:1.5,  invert:false },
+  fiber:{ label:'Fibra',            unit:'g',    lo:2,    hi:6,    invert:true  },
+  k:    { label:'Calorías',         unit:'kcal', lo:200,  hi:400,  invert:false },
 };
 
 function nsColor(key, val) {
@@ -2381,11 +2508,11 @@ function nsColor(key, val) {
 }
 
 function nsBadgeCompact(data) {
-  const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
+  const keys = ['p','c','f','sat','sugar','salt','fiber'];
   const pills = [];
   keys.forEach(key => {
     const val = data?.[key];
-    if (val === undefined || val === null || !val) return;
+    if (val === undefined || val === null || val === 0) return;
     const color = nsColor(key, val);
     if (!color) return;
     const t = NS_THRESHOLDS[key];
@@ -2398,21 +2525,24 @@ function nsBadgeCompact(data) {
 }
 
 function nsTableFull(data) {
-  const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
+  // Solo los 7 nutrientes nutricionales (sin calorías — eso va en las macro-tags)
+  const keys = ['p','c','f','sat','sugar','salt','fiber'];
   const rows = keys.map(key => {
     const val = data?.[key];
-    if (val === undefined || val === null) return '';
+    // Si el campo no existe o es 0, se omite (puede ser desconocido, no necesariamente 0)
+    if (val === undefined || val === null || val === 0) return '';
     const color = nsColor(key, val);
     if (!color) return '';
     const t = NS_THRESHOLDS[key];
     const emoji = color==='green'?'🟢':color==='yellow'?'🟡':'🔴';
     return `<tr class="ns-tr-${color}">
       <td>${t.label}</td>
-      <td>${val}${t.unit} ${emoji}</td>
+      <td style="text-align:right;white-space:nowrap">${val}${t.unit}&nbsp;${emoji}</td>
     </tr>`;
   }).filter(Boolean);
   if (!rows.length) return '';
-  return `<table class="ns-table"><tbody>${rows.join('')}</tbody></table>`;
+  return `<div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:8px 0 4px">Semáforo nutricional</div>
+<table class="ns-table"><tbody>${rows.join('')}</tbody></table>`;
 }
 const ADDITIVES_DB = [
   { code:'E100', name:'Curcumina (amarillo)' },
