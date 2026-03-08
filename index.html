@@ -1755,19 +1755,14 @@ function renderWeekGrid() {
 window.renderWeekGrid = renderWeekGrid;
 
 function buildWgCell(dayIdx, meal, profiles) {
-  // Recoger todas las entidades que tienen entradas en esta celda
-  const persons  = window._persons || [];
-  const groups   = window._groups  || [];
+  const persons    = window._persons || [];
+  const groups     = window._groups  || [];
   const allEntities = [...persons, ...groups];
   const sharedEntries = window._week?.[sk(dayIdx, meal, 'all')] || [];
 
-  // Recoger entidades con entradas en esta celda
   const usedEntityIds = allEntities
     .map(e => e.id)
     .filter(eid => (window._week?.[sk(dayIdx, meal, eid)] || []).length > 0);
-
-  // Si hay shared entries, siempre mostrar al menos una sección 'all'
-  const hasShared = sharedEntries.length > 0;
 
   const buildDishHTML = (entries, eid) => entries.map(e => {
     if (e?.free) return `<div class="wg-dish">
@@ -1784,22 +1779,14 @@ function buildWgCell(dayIdx, meal, profiles) {
 
   let inner = '';
 
-  // Sección 'all' si hay entradas compartidas
-  if (hasShared) {
-    inner += `<div>
-      <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
-        <div class="wg-profile-dot" style="background:var(--muted)"></div>
-        <span style="font-size:0.52rem;font-weight:700;color:var(--muted);text-transform:uppercase">Todos</span>
-      </div>
-      ${buildDishHTML(sharedEntries, 'all')}
-    </div>`;
+  if (sharedEntries.length) {
+    inner += buildDishHTML(sharedEntries, 'all');
     if (usedEntityIds.length) inner += `<hr class="wg-profile-sep">`;
   }
 
-  // Secciones por entidad
   usedEntityIds.forEach((eid, i) => {
     if (i > 0) inner += `<hr class="wg-profile-sep">`;
-    const entity = allEntities.find(e=>e.id===eid);
+    const entity = allEntities.find(e => e.id === eid);
     const entries = window._week?.[sk(dayIdx, meal, eid)] || [];
     inner += `<div>
       <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
@@ -1810,102 +1797,66 @@ function buildWgCell(dayIdx, meal, profiles) {
     </div>`;
   });
 
-  // Botón + con dropdown de entidades
-  const cellKey = `cell-${dayIdx}-${meal}`;
   inner += `<button class="wg-add-btn" style="margin-top:4px"
-    onclick="event.stopPropagation();toggleCellDropdown('${cellKey}',${dayIdx},'${meal}',this)">+ Asignar</button>
-  <div id="${cellKey}-drop" style="display:none;position:absolute;z-index:200;background:var(--surface2);
-    border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:155px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);top:calc(100% + 4px);left:0">
-    ${persons.length === 0
-      ? '<div style="font-size:0.7rem;color:var(--muted);padding:4px 8px">Crea personas en ⚙️</div>'
-      : `<div style="font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 8px 3px">Personas</div>
-        ${persons.map(e => `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer"
-          onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
-          <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
-          <span style="font-size:0.82rem;font-weight:600;color:${e.color}">${e.name}</span>
-        </div>`).join('')}
-        ${groups.length ? `
-          <div style="border-top:1px solid var(--border2);margin:3px 0"></div>
-          <div style="font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 8px 3px">Grupos</div>
-          ${groups.map(e => `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer"
-            onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
-            <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
-            <span style="font-size:0.82rem;font-weight:600;color:${e.color}">${e.name}</span>
-          </div>`).join('')}` : ''}
-      `
-    }
-    <div style="border-top:1px solid var(--border2);margin-top:3px;padding-top:3px">
-      <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:7px;cursor:pointer"
-        onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','all')">
-        <span style="font-size:0.75rem;color:var(--muted)">General (sin asignar)</span>
-      </div>
-    </div>
-  </div>`;
+    onclick="event.stopPropagation();openEntityPicker(${dayIdx},'${meal}')">+ Asignar</button>`;
 
-  return `<div class="wg-cell" style="position:relative">${inner}</div>`;
+  return `<div class="wg-cell">${inner}</div>`;
 }
 window.buildWgCell = buildWgCell;
 
-let _openCellDropdown = null;
-function toggleCellDropdown(key, dayIdx, meal, btn) {
-  // Cerrar el que estaba abierto
-  if (_openCellDropdown && _openCellDropdown !== key) {
-    const prev = document.getElementById(_openCellDropdown + '-drop');
-    if (prev) prev.style.display = 'none';
-  }
-  const el = document.getElementById(key + '-drop');
-  if (!el) return;
-  const isOpen = el.style.display !== 'none';
-  if (isOpen) {
-    el.style.display = 'none';
-    _openCellDropdown = null;
+// Paso 1: elegir persona/grupo antes de abrir el picker de platos
+function openEntityPicker(dayIdx, meal) {
+  const persons  = window._persons || [];
+  const groups   = window._groups  || [];
+  const allEntities = [...persons, ...groups];
+  const mealObj = MEALS.find(m=>m.id===meal);
+
+  document.getElementById('picker-title').textContent =
+    `${DAYS[dayIdx]} · ${mealObj?.label||meal} — ¿Para quién?`;
+
+  const list = document.getElementById('picker-list');
+
+  if (!allEntities.length) {
+    // Sin personas — ir directo a picker general
+    openPicker(dayIdx, meal, 'all');
     return;
   }
-  // Posicionar junto al botón
-  if (btn) {
-    const rect = btn.getBoundingClientRect();
-    // Mostrar temporalmente para medir altura real
-    el.style.visibility = 'hidden';
-    el.style.display = 'block';
-    const elH = el.offsetHeight;
-    el.style.visibility = '';
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    if (spaceBelow >= elH || spaceBelow >= spaceAbove) {
-      el.style.top = (rect.bottom + 4) + 'px';
-    } else {
-      el.style.top = (rect.top - elH - 4) + 'px';
-    }
-    let left = rect.left;
-    if (left + 150 > window.innerWidth) left = window.innerWidth - 155;
-    if (left < 4) left = 4;
-    el.style.left = left + 'px';
-  } else {
-    el.style.display = 'block';
-  }
-  _openCellDropdown = key;
-}
-window.toggleCellDropdown = toggleCellDropdown;
 
-// Cerrar dropdown al hacer click fuera
-document.addEventListener('click', () => {
-  if (_openCellDropdown) {
-    const el = document.getElementById(_openCellDropdown + '-drop');
-    if (el) el.style.display = 'none';
-    _openCellDropdown = null;
-  }
-});
+  // Separar personas y grupos
+  const personItems = persons.map(e => `
+    <div class="picker-item" onclick="openPicker(${dayIdx},'${meal}','${e.id}')">
+      <div style="width:12px;height:12px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+      <div style="flex:1;font-size:0.9rem;font-weight:600;color:${e.color}">${e.name}</div>
+      <span style="color:var(--muted)">→</span>
+    </div>`).join('');
 
-function openPickerForEntity(dayIdx, meal, entityId) {
-  if (_openCellDropdown) {
-    const el = document.getElementById(_openCellDropdown + '-drop');
-    if (el) el.style.display = 'none';
-    _openCellDropdown = null;
-  }
-  openPicker(dayIdx, meal, entityId);
+  const groupItems = groups.length ? `
+    <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:10px 0 6px">Grupos</div>
+    ${groups.map(e => `
+      <div class="picker-item" onclick="openPicker(${dayIdx},'${meal}','${e.id}')">
+        <div style="width:12px;height:12px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:0.9rem;font-weight:600;color:${e.color}">${e.name}</div>
+          <div style="font-size:0.68rem;color:var(--muted)">${(e.members||[]).map(mid=>(window._persons||[]).find(p=>p.id===mid)?.name).filter(Boolean).join(', ')||'sin miembros'}</div>
+        </div>
+        <span style="color:var(--muted)">→</span>
+      </div>`).join('')}` : '';
+
+  list.innerHTML = `
+    <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Personas</div>
+    ${personItems}
+    ${groupItems}
+    <div style="border-top:1px solid var(--border2);margin-top:10px;padding-top:8px">
+      <div class="picker-item" onclick="openPicker(${dayIdx},'${meal}','all')" style="opacity:0.6">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--muted);flex-shrink:0"></div>
+        <div style="flex:1;font-size:0.85rem">Sin asignar (general)</div>
+        <span style="color:var(--muted)">→</span>
+      </div>
+    </div>`;
+
+  document.getElementById('picker-overlay').classList.add('open');
 }
-window.openPickerForEntity = openPickerForEntity;
+window.openEntityPicker = openEntityPicker;
 
 function renderWeekBar() {
   const {k,pr,unique} = calcWeekTotals();
