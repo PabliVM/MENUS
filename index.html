@@ -517,6 +517,14 @@ header {
 
 <div class="view" id="view-compra" style="padding:16px">
   <br>
+  <!-- Selector semanas -->
+  <div class="card" style="margin-bottom:14px" id="shop-weeks-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="card-title" style="margin-bottom:0">Semanas a incluir</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadShopWeeks()" style="font-size:0.65rem">↻ Actualizar</button>
+    </div>
+    <div id="shop-weeks-list" style="color:var(--muted);font-size:0.78rem">Cargando semanas…</div>
+  </div>
   <!-- Añadir producto manual -->
   <div class="card" style="margin-bottom:14px">
     <div class="card-title" style="margin-bottom:10px">Añadir producto extra</div>
@@ -905,11 +913,26 @@ function startListeners() {
     if (window._activeView === 'compra')    window.renderCompra();
   }, () => setSyncState('err', 'sin conexión'));
 
-  // Week
-  onSnapshot(doc(db, 'state', 'week'), snap => {
-    window._week = snap.exists() ? snap.data() : {};
-    if (window._activeView === 'semana') window.renderSemana();
-    if (window._activeView === 'compra') window.renderCompra();
+  // Week — carga inicial de la semana actual
+  window._week = {};
+  window._currentWeekKey = isoMonday(0);
+  getDoc(doc(db, 'weeks', window._currentWeekKey)).then(snap => {
+    // Migración: si no existe en weeks/, intentar leer el doc legacy
+    if (!snap.exists()) {
+      getDoc(doc(db, 'state', 'week')).then(legacySnap => {
+        if (legacySnap.exists()) {
+          window._week = legacySnap.data();
+          // Guardar en nuevo formato
+          setDoc(doc(db, 'weeks', window._currentWeekKey), window._week);
+        }
+        if (window._activeView === 'semana') window.renderSemana();
+        if (window._activeView === 'compra') window.renderCompra();
+      });
+    } else {
+      window._week = snap.data();
+      if (window._activeView === 'semana') window.renderSemana();
+      if (window._activeView === 'compra') window.renderCompra();
+    }
   });
 
   // History
@@ -960,7 +983,26 @@ window._deleteDishFromDb = async (id) => {
 
 window._saveWeekToDb = async (weekData) => {
   setSyncState('syncing', 'guardando…');
-  await setDoc(doc(db, 'state', 'week'), weekData);
+  const key = isoMonday(window._weekOffset ?? 0);
+  await setDoc(doc(db, 'weeks', key), weekData);
+};
+
+window._loadWeek = async (offset) => {
+  const key = isoMonday(offset);
+  const snap = await getDoc(doc(db, 'weeks', key));
+  window._week = snap.exists() ? snap.data() : {};
+  window._currentWeekKey = key;
+};
+
+// Cargar todas las semanas disponibles (para compra multi-semana)
+window._loadAllWeekKeys = async () => {
+  const snap = await getDocs(collection(db, 'weeks'));
+  return snap.docs.map(d => d.id).sort();
+};
+
+window._loadWeekByKey = async (key) => {
+  const snap = await getDoc(doc(db, 'weeks', key));
+  return snap.exists() ? snap.data() : {};
 };
 
 window._saveHistoryEntry = async (entry) => {
@@ -1083,6 +1125,7 @@ function macroHtml(m, price) {
 // ── TABS ──
 function switchView(v) {
   window._activeView = v;
+  if (v === 'compra') setTimeout(loadShopWeeks, 0);
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById(`view-${v}`).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -1875,6 +1918,12 @@ function getWeekMonday(offset) {
   return mon;
 }
 
+function isoMonday(offset) {
+  const mon = getWeekMonday(offset ?? window._weekOffset ?? 0);
+  return mon.toISOString().slice(0,10); // "2025-03-10"
+}
+window.isoMonday = isoMonday;
+
 // weekOffset: 0 = semana actual, -1 = anterior, +1 = siguiente
 
 function initWeekSelector() {
@@ -2221,18 +2270,89 @@ function inferCat(name) {
   return 'Otros';
 }
 
+// ── COMPRA MULTI-SEMANA ──
+let _shopSelectedWeeks = new Set(); // keys isoMonday seleccionadas
+let _shopWeeksData = {};            // key → weekData cargado
+
+async function loadShopWeeks() {
+  const el = document.getElementById('shop-weeks-list');
+  if (el) el.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">Cargando…</span>';
+  const snap = await getDocs(collection(db, 'weeks'));
+  const keys = snap.docs.map(d => d.id).sort();
+
+  // Precargar datos
+  _shopWeeksData = {};
+  snap.docs.forEach(d => { _shopWeeksData[d.id] = d.data(); });
+
+  // Auto-seleccionar semana actual si no hay ninguna seleccionada
+  const currentKey = isoMonday(0);
+  if (_shopSelectedWeeks.size === 0 && keys.includes(currentKey)) {
+    _shopSelectedWeeks.add(currentKey);
+  } else if (_shopSelectedWeeks.size === 0 && keys.length) {
+    _shopSelectedWeeks.add(keys[keys.length - 1]); // última semana disponible
+  }
+
+  renderShopWeeks(keys);
+  renderCompra();
+}
+window.loadShopWeeks = loadShopWeeks;
+
+function renderShopWeeks(keys) {
+  const el = document.getElementById('shop-weeks-list');
+  if (!el) return;
+  if (!keys.length) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">Sin semanas planificadas.</span>';
+    return;
+  }
+  el.innerHTML = keys.map(key => {
+    const selected = _shopSelectedWeeks.has(key);
+    const label = weekKeyToLabel(key);
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 2px;cursor:pointer;font-size:0.8rem">
+      <input type="checkbox" ${selected ? 'checked' : ''} onchange="toggleShopWeek('${key}',this.checked)"
+        style="width:16px;height:16px;accent-color:var(--accent)"/>
+      <span style="${selected ? 'color:var(--ink);font-weight:600' : 'color:var(--muted)'}">${label}</span>
+    </label>`;
+  }).join('');
+}
+
+function weekKeyToLabel(key) {
+  // "2025-03-10" → "10 mar – 16 mar"
+  const mon = new Date(key + 'T00:00:00');
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('es-ES', {day:'numeric', month:'short'});
+  const currentKey = isoMonday(0);
+  const tag = key === currentKey ? ' (semana actual)' : '';
+  return `${fmt(mon)} – ${fmt(sun)}${tag}`;
+}
+window.weekKeyToLabel = weekKeyToLabel;
+
+function toggleShopWeek(key, checked) {
+  if (checked) _shopSelectedWeeks.add(key);
+  else _shopSelectedWeeks.delete(key);
+  renderCompra();
+}
+window.toggleShopWeek = toggleShopWeek;
+
 function buildShoppingList() {
   const totals = {};
-  const pids = ['all', ...(window._profiles||[]).map(p=>p.id)];
-  for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
-    pids.forEach(pid => {
-      (window._week?.[sk(d,m,pid)]||[]).forEach(entry => {
-        const dish=gd(slotId(entry)); if(!dish) return;
-        (dish.ingredients||[]).forEach(ing => {
-          if(!ing.name.trim()) return;
-          const key=ing.name.toLowerCase().trim()+'_'+ing.unit;
-          if(!totals[key]) totals[key]={name:ing.name,unit:ing.unit,qty:0,cat:getIngCat(ing.name),manual:false};
-          totals[key].qty+=parseFloat(ing.qty)||0;
+  const eids = ['all', ...(window._persons||[]).map(p=>p.id), ...(window._groups||[]).map(g=>g.id)];
+
+  // Iterar sobre las semanas seleccionadas (o _week actual si no hay selector activo)
+  const weeksToUse = _shopSelectedWeeks.size > 0
+    ? [..._shopSelectedWeeks].map(key => _shopWeeksData[key] || {})
+    : [window._week || {}];
+
+  weeksToUse.forEach(weekData => {
+    for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
+      eids.forEach(eid => {
+        (weekData[sk(d,m,eid)]||[]).forEach(entry => {
+          const dish=gd(slotId(entry)); if(!dish) return;
+          (dish.ingredients||[]).forEach(ing => {
+            if(!ing.name.trim()) return;
+            const key=ing.name.toLowerCase().trim()+'_'+ing.unit;
+            if(!totals[key]) totals[key]={name:ing.name,unit:ing.unit,qty:0,cat:getIngCat(ing.name),manual:false};
+            totals[key].qty+=parseFloat(ing.qty)||0;
+          });
         });
       });
     });
