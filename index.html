@@ -1813,7 +1813,7 @@ function buildWgCell(dayIdx, meal, profiles) {
   // Botón + con dropdown de entidades
   const cellKey = `cell-${dayIdx}-${meal}`;
   inner += `<button class="wg-add-btn" style="margin-top:4px"
-    onclick="event.stopPropagation();toggleCellDropdown('${cellKey}',${dayIdx},'${meal}')">+ Asignar</button>
+    onclick="event.stopPropagation();toggleCellDropdown('${cellKey}',${dayIdx},'${meal}',this)">+ Asignar</button>
   <div id="${cellKey}-drop" style="display:none;position:absolute;z-index:200;background:var(--surface2);
     border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:155px;
     box-shadow:0 4px 20px rgba(0,0,0,0.5);top:calc(100% + 4px);left:0">
@@ -1848,7 +1848,7 @@ function buildWgCell(dayIdx, meal, profiles) {
 window.buildWgCell = buildWgCell;
 
 let _openCellDropdown = null;
-function toggleCellDropdown(key, dayIdx, meal) {
+function toggleCellDropdown(key, dayIdx, meal, btn) {
   // Cerrar el que estaba abierto
   if (_openCellDropdown && _openCellDropdown !== key) {
     const prev = document.getElementById(_openCellDropdown + '-drop');
@@ -1857,8 +1857,37 @@ function toggleCellDropdown(key, dayIdx, meal) {
   const el = document.getElementById(key + '-drop');
   if (!el) return;
   const isOpen = el.style.display !== 'none';
-  el.style.display = isOpen ? 'none' : 'block';
-  _openCellDropdown = isOpen ? null : key;
+  if (isOpen) {
+    el.style.display = 'none';
+    _openCellDropdown = null;
+    return;
+  }
+  // Posicionar junto al botón
+  const trigger = btn || event?.target;
+  if (trigger) {
+    const rect = trigger.getBoundingClientRect();
+    const dropH = 200; // altura estimada del dropdown
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    el.style.display = 'block';
+    const elH = el.offsetHeight || dropH;
+    if (spaceBelow >= elH || spaceBelow >= spaceAbove) {
+      // Mostrar hacia abajo
+      el.style.top  = (rect.bottom + 4) + 'px';
+      el.style.bottom = 'auto';
+    } else {
+      // Mostrar hacia arriba
+      el.style.top  = (rect.top - elH - 4) + 'px';
+      el.style.bottom = 'auto';
+    }
+    // Horizontal: alinear a la izquierda del botón, sin salirse de pantalla
+    let left = rect.left;
+    if (left + 140 > window.innerWidth) left = window.innerWidth - 148;
+    el.style.left = left + 'px';
+  } else {
+    el.style.display = 'block';
+  }
+  _openCellDropdown = key;
 }
 window.toggleCellDropdown = toggleCellDropdown;
 
