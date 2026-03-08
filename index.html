@@ -785,10 +785,10 @@ header {
       <div class="field"><label>Nombre del plato</label><input id="f-name" type="text" placeholder="Ej: Pollo al horno con verduras" maxlength="50"/></div>
       <div class="field" style="max-width:160px"><label>🍽 Raciones que salen</label><input id="f-servings" type="number" min="1" max="20" placeholder="Ej: 4" style="text-align:center"/></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
-        <button class="btn btn-ghost btn-sm" onclick="addDishPart()" style="font-size:0.65rem;padding:3px 8px">+ Parte</button>
+        <div style="font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Ingredientes</div>
+        <button class="btn btn-accent btn-sm" onclick="openCatForNew()" style="font-size:0.72rem;padding:4px 12px">+ Añadir</button>
       </div>
-      <div id="parts-list"></div>
+      <div id="ing-list-main" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
       <div class="macro-preview" id="macro-preview">
         <span style="font-size:0.7rem;color:var(--muted)">Identifica ingredientes con IA para calcular macros</span>
       </div>
@@ -1078,391 +1078,136 @@ const MEALS = [
   { id:'dinner',    label:'Cena',     icon:'Cena'      },
 ];
 const UNIT_OPTS = ['g','ml','unidad','taza','cdta','cda'];
-let ingRows = []; // compatibility alias → dishParts[0].rows
-let dishParts = [{ id: 'part_default', name: '', rows: [] }];
-function getIngRows() { return dishParts.flatMap(p => p.rows); }
-let editId  = null;
-let selDay  = 0;
-let selPerson = 'all';
-let gridPersonFilter = 'all'; // persona seleccionada para macros del grid
-let pickerTarget = null;
-let aiTarget = null;
-window._activeView = 'platos';
-window._weekOffset = 0;
+// ── INGREDIENTES (nuevo modelo simple) ──
+let dishIngredients = []; // [{id, name, qty, unit, macros100:{k,p,c,f}}]
+let catTarget = null;     // id del ingrediente que está siendo editado (null = nuevo)
 
-// Helpers
-const sk = (d,m,p='all') => `${d}-${m}-${p}`;
-const gd = id => (window._dishes||[]).find(d => d.id === (typeof id === 'object' ? id.id : id));
-const gdEntry = entry => {
-  const dish = gd(entry);
-  if (!dish) return null;
-  if (typeof entry === 'object' && entry.brandOverrides && Object.keys(entry.brandOverrides).length) {
-    return { ...dish, _brandOverrides: entry.brandOverrides, _entryId: entry.id };
+function renderIngList() {
+  const el = document.getElementById('ing-list-main');
+  if (!el) return;
+  if (!dishIngredients.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:6px 0">Sin ingredientes. Pulsa + Añadir.</div>';
+    updateMacroPreview();
+    return;
   }
-  return dish;
-};
-const slotId = entry => typeof entry === 'string' ? entry : entry?.id;
-const slotOverrides = entry => typeof entry === 'object' ? entry?.brandOverrides || {} : {};
-
-function toast(msg, duration=2200) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), duration);
-}
-
-// ── MACROS ──
-function calcMacros(ingredients) {
-  let p=0,c=0,f=0,k=0;
-  (ingredients||[]).forEach(ing => {
-    const m = ing.macros100; if (!m) return;
-    const qty = parseFloat(ing.qty)||0;
-    let g = qty;
-    if (ing.unit==='unidad') g=qty*100;
-    else if (ing.unit==='taza') g=qty*240;
-    else if (ing.unit==='cdta') g=qty*5;
-    else if (ing.unit==='cda')  g=qty*15;
-    const f2 = g/100;
-    p+=(m.p||0)*f2; c+=(m.c||0)*f2; f+=(m.f||0)*f2; k+=(m.k||0)*f2;
-  });
-  return {p:Math.round(p),c:Math.round(c),f:Math.round(f),k:Math.round(k)};
-}
-
-function macroHtml(m, price) {
-  if (!m) return '<span style="font-size:0.68rem;color:var(--muted)">Sin datos</span>';
-  return `${m.k?`<span class="macro-tag kcal">🔥${m.k}kcal</span>`:''}
-    ${m.p?`<span class="macro-tag prot">P:${m.p}g</span>`:''}
-    ${m.c?`<span class="macro-tag carb">C:${m.c}g</span>`:''}
-    ${m.f?`<span class="macro-tag fat">G:${m.f}g</span>`:''}
-    ${price?`<span class="macro-tag" style="color:var(--accent2)">${parseFloat(price).toFixed(2)}€</span>`:''}`;
-}
-
-// ── TABS ──
-function switchView(v) {
-  window._activeView = v;
-  if (v === 'compra') setTimeout(loadShopWeeks, 0);
-  if (v === 'stats') {
-    statsWeekOffset = 0;
-    _statsWeekData = window._week || {};
-    updateStatsWeekLabel();
-    renderStats();
-  }
-  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-  document.getElementById(`view-${v}`).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(`nav-${v}`)?.classList.add('active');
-  if (v==='semana')     { initWeekSelector(); renderSemana(); }
-  if (v==='recetas')    { showRecetasLanding(); }
-  if (v==='compra')     renderCompra();
-  if (v==='stats')      renderStats();
-  if (v==='biblioteca') { showBibLanding(); }
-}
-window.switchView = switchView;
-
-// ── RECETAS SUB-VISTAS ──
-function showRecetasLanding() {
-  document.getElementById('recetas-landing').style.display = 'block';
-  document.getElementById('recetas-nueva').style.display = 'none';
-  document.getElementById('recetas-lista').style.display = 'none';
-}
-window.showRecetasLanding = showRecetasLanding;
-
-function showRecetasSub(sub) {
-  document.getElementById('recetas-landing').style.display = 'none';
-  document.getElementById('recetas-nueva').style.display = sub==='nueva' ? 'block' : 'none';
-  document.getElementById('recetas-lista').style.display = sub==='lista' ? 'block' : 'none';
-  if (sub==='lista') renderRecetas();
-}
-window.showRecetasSub = showRecetasSub;
-
-// ── BIBLIOTECA SUB-VISTAS ──
-function showBibLanding() {
-  document.getElementById('bib-landing').style.display = 'block';
-  document.getElementById('bib-nueva').style.display = 'none';
-  document.getElementById('bib-lista').style.display = 'none';
-  cancelLibEdit();
-}
-window.showBibLanding = showBibLanding;
-
-function showBibSub(sub) {
-  document.getElementById('bib-landing').style.display = 'none';
-  document.getElementById('bib-nueva').style.display = sub==='nueva' ? 'block' : 'none';
-  document.getElementById('bib-lista').style.display = sub==='lista' ? 'block' : 'none';
-  if (sub==='lista') renderLibList();
-}
-window.showBibSub = showBibSub;
-
-// ── PLATOS ──
-function addIngRow(val, partId) {
-  const id = (Date.now()+Math.random()).toString();
-  const row = { id, name:val?.name||'', qty:val?.qty||'', unit:val?.unit||'g', macros100:val?.macros100||null };
-  const part = dishParts.find(p=>p.id===(partId||dishParts[0].id)) || dishParts[0];
-  part.rows.push(row);
-  ingRows = dishParts[0].rows; // mantener alias
-  // Añadir el bloque al DOM de la parte correcta
-  const el = document.getElementById('ing-list-' + part.id);
-  if (el) {
-    const div = document.createElement('div');
-    div.innerHTML = ingBlockHtml(row, part.rows.length - 1);
-    el.appendChild(div.firstElementChild);
-  } else {
-    renderPartsList();
-  }
-  updateMacroPreview();
-}
-window.addIngRow = addIngRow;
-
-function ingBlockHtml(r, i) {
-  const m = r.macros100;
-  const resultHtml = m
-    ? `<div class="ing-result found">✓ 🔥${m.k}kcal · P:${m.p}g · C:${m.c}g · G:${m.f}g <span style="opacity:0.6">por 100g</span></div>`
-    : r.confirmed
-      ? `<div class="ing-result notfound">Sin datos — no se incluye en el cálculo</div>`
-      : '';
-  return `
-  <div class="ing-block" id="ib-${r.id}">
-    <div class="ing-top">
-      <div class="field">${i===0?'<label>Ingrediente</label>':''}
-        <input type="text" value="${r.name.replace(/"/g,'&quot;')}" placeholder="Pollo, arroz, tomate…"
-          oninput="updateIngName('${r.id}',this.value)" />
+  el.innerHTML = dishIngredients.map(r => {
+    const hasM = r.macros100;
+    const kcalTotal = hasM ? Math.round(r.macros100.k * (parseFloat(r.qty)||0) / 100) : null;
+    return `<div style="display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:6px;
+      padding:7px 10px;background:var(--surface2);border-radius:9px;border:1px solid var(--border)">
+      <div>
+        <div style="font-size:0.82rem;font-weight:600">${r.name}</div>
+        ${hasM ? `<div style="font-size:0.62rem;color:var(--muted)">
+          ${kcalTotal !== null ? `🔥${kcalTotal} kcal · ` : ''}P${Math.round(r.macros100.p*(parseFloat(r.qty)||0)/100)}g
+          C${Math.round(r.macros100.c*(parseFloat(r.qty)||0)/100)}g
+          G${Math.round(r.macros100.f*(parseFloat(r.qty)||0)/100)}g
+        </div>` : '<div style="font-size:0.6rem;color:var(--muted)">Sin macros</div>'}
       </div>
-      <button class="ing-cat-btn ${m?'confirmed':''}" onclick="openCat('${r.id}')">${m?'✓ '+r.name:'? tipo'}</button>
-    </div>
-    <div class="ing-bottom">
-      <div class="field">${i===0?'<label>Cantidad</label>':''}
-        <input type="number" value="${r.qty}" placeholder="200" min="0"
-          oninput="updateIng('${r.id}','qty',this.value)" />
-      </div>
-      <div class="field">${i===0?'<label>Unidad</label>':''}
-        <select onchange="updateIng('${r.id}','unit',this.value)">
-          ${UNIT_OPTS.map(u=>`<option value="${u}" ${u===r.unit?'selected':''}>${u}</option>`).join('')}
-        </select>
-      </div>
-      <button class="ing-del" onclick="delIng('${r.id}')">✕</button>
-    </div>
-    ${resultHtml}
-  </div>`;
-}
-
-function renderIngRows() { renderPartsList(); } // compatibilidad
-
-function renderPartsList() {
-  const container = document.getElementById('parts-list');
-  if (!container) return;
-  const multiPart = dishParts.length > 1 || dishParts[0]?.name;
-  container.innerHTML = dishParts.map((part, pi) => {
-    const header = multiPart ? `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <input type="text" value="${part.name}" placeholder="Nombre de la parte (ej: Base, Salsa…)"
-          style="flex:1;padding:5px 10px;background:var(--surface);border:1px solid var(--border2);
-          border-radius:8px;color:var(--ink);font-family:inherit;font-size:0.8rem"
-          oninput="dishParts[${pi}].name=this.value;updateMacroPreview()"/>
-        ${dishParts.length > 1 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem"
-          onclick="removeDishPart('${part.id}')">✕</button>` : ''}
-      </div>` : '';
-    const rows = part.rows.map((r,i) => ingBlockHtml(r,i)).join('');
-    return `<div style="${multiPart ? 'background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--border)' : ''}">
-      ${header}
-      <div id="ing-list-${part.id}">${rows}</div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:4px;margin-bottom:${multiPart?4:12}px"
-        onclick="addIngRow(null,'${part.id}')">+ Ingrediente</button>
+      <input type="number" value="${r.qty}" placeholder="100" min="0"
+        style="width:56px;padding:4px 6px;background:var(--surface);border:1px solid var(--border2);
+        border-radius:7px;color:var(--ink);font-size:0.8rem;text-align:center"
+        oninput="updateIngQty('${r.id}',this.value)"/>
+      <div style="font-size:0.72rem;color:var(--muted)">${r.unit}</div>
+      <button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:0.7rem"
+        onclick="removeIng('${r.id}')">✕</button>
     </div>`;
   }).join('');
   updateMacroPreview();
 }
+window.renderIngList = renderIngList;
 
-// Actualiza SOLO el bloque del ingrediente afectado, preservando otros inputs
-function updateIngBlock(id) {
-  const idx = getIngRows().findIndex(r=>r.id==id);
-  if (idx < 0) return;
-  const r = ingRows[idx];
-  const existing = document.getElementById(`ib-${r.id}`);
-  if (!existing) { renderIngRows(); return; }
-  // Solo actualizar el botón tipo y el result — sin tocar inputs
-  const btn = existing.querySelector('.ing-cat-btn');
-  if (btn) {
-    btn.textContent = r.macros100
-      ? `✓ ${r.name}`
-      : (r.confirmed ? '— sin datos' : '? tipo');
-    btn.className = 'ing-cat-btn' + (r.macros100 ? ' confirmed' : '');
-    btn.onclick = () => openCat(r.id);
-  }
-  let result = existing.querySelector('.ing-result');
-  if (r.macros100) {
-    const m = r.macros100;
-    if (!result) {
-      result = document.createElement('div');
-      existing.appendChild(result);
-    }
-    result.className = 'ing-result found';
-    result.innerHTML = `✓ 🔥${m.k}kcal · P:${m.p}g · C:${m.c}g · G:${m.f}g <span style="opacity:0.6">por 100g</span>`;
-  } else if (r.confirmed) {
-    if (!result) { result = document.createElement('div'); existing.appendChild(result); }
-    result.className = 'ing-result notfound';
-    result.textContent = 'Sin datos — no se incluye en el cálculo';
-  } else if (result) {
-    result.remove();
-  }
-  // Rellenar nombre en el input si estaba vacío
-  const nameInput = existing.querySelector('input[type="text"]');
-  if (nameInput && !nameInput.value.trim() && r.name) nameInput.value = r.name;
-  updateMacroPreview();
+function updateIngQty(id, val) {
+  const r = dishIngredients.find(r => r.id === id); if (!r) return;
+  r.qty = val;
+  renderIngList();
 }
+window.updateIngQty = updateIngQty;
 
-function updateIngName(id, val) {
-  const r = getIngRows().find(r=>r.id==id); if (!r) return;
-  r.name = val; r.macros100 = null; r.confirmed = false;
-  updateMacroPreview();
+function removeIng(id) {
+  dishIngredients = dishIngredients.filter(r => r.id !== id);
+  renderIngList();
 }
-window.updateIngName = updateIngName;
+window.removeIng = removeIng;
 
-function updateIng(id, field, val) {
-  const r = getIngRows().find(r=>r.id==id); if (!r) return;
-  r[field] = val; updateMacroPreview();
-}
-window.updateIng = updateIng;
-
-function delIng(id) { ingRows = ingRows.filter(r=>r.id!=id); renderIngRows(); }
-window.delIng = delIng;
-
-function updateMacroPreview() {
-  const allRows = getIngRows();
-  const total = calcMacros(allRows);
-  const el = document.getElementById('macro-preview');
-  const hasData = allRows.some(r=>r.macros100);
-  const servings = Math.max(1, parseInt(document.getElementById('f-servings')?.value)||1);
-  const perRacion = {
-    p: Math.round(total.p/servings),
-    c: Math.round(total.c/servings),
-    f: Math.round(total.f/servings),
-    k: Math.round(total.k/servings),
-  };
-  el.innerHTML = hasData
-    ? `<div style="width:100%">
-         <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Por ración (${servings} ${servings===1?'ración':'raciones'})</div>
-         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-           <span class="macro-tag prot">P:${perRacion.p}g</span>
-           <span class="macro-tag carb">C:${perRacion.c}g</span>
-           <span class="macro-tag fat">G:${perRacion.f}g</span>
-           <span class="macro-tag kcal">🔥${perRacion.k}kcal</span>
-         </div>
-         <div style="font-size:0.6rem;color:var(--muted)">Total receta: 🔥${total.k}kcal · P:${total.p}g · C:${total.c}g · G:${total.f}g</div>
-       </div>`
-    : `<span style="font-size:0.7rem;color:var(--muted)">Pulsa "? tipo" en cada ingrediente para confirmar y calcular macros</span>`;
-  if (hasData) {
-    el.innerHTML += nsTableFull(perRacion);
-  }
-}
-
-// ── CATEGORY PICKER ──
-const FOOD_DB = {
-  'Carnes blancas': [
-    { name: 'Pollo (pechuga)',       p:31, c:0,  f:3.6, k:165 },
-    { name: 'Pollo (muslo/contramuslo)', p:26, c:0, f:10, k:197 },
-    { name: 'Pavo (pechuga)',        p:29, c:0,  f:1,   k:135 },
-    { name: 'Conejo',                p:21, c:0,  f:5,   k:136 },
-  ],
-  'Carnes rojas': [
-    { name: 'Ternera (magra)',       p:26, c:0,  f:7,   k:172 },
-    { name: 'Ternera (con grasa)',   p:22, c:0,  f:15,  k:224 },
-    { name: 'Cerdo (lomo)',          p:27, c:0,  f:6,   k:165 },
-    { name: 'Cerdo (panceta)',       p:14, c:0,  f:42,  k:435 },
-    { name: 'Cordero',               p:25, c:0,  f:13,  k:218 },
-    { name: 'Buey/Vacuno',          p:26, c:0,  f:10,  k:200 },
-  ],
-  'Embutidos y fiambres': [
-    { name: 'Jamón serrano',         p:30, c:0,  f:5,   k:163 },
-    { name: 'Jamón york',            p:21, c:1,  f:6,   k:142 },
-    { name: 'Chorizo',               p:24, c:2,  f:40,  k:455 },
-    { name: 'Salchichón',            p:22, c:1,  f:38,  k:430 },
-    { name: 'Salchicha Frankfurt',   p:12, c:3,  f:25,  k:285 },
-    { name: 'Pavo fiambre',          p:18, c:2,  f:3,   k:110 },
-  ],
-  'Pescados': [
-    { name: 'Salmón',                p:20, c:0,  f:13,  k:208 },
-    { name: 'Atún (fresco)',         p:30, c:0,  f:1,   k:116 },
-    { name: 'Atún (lata en aceite)', p:25, c:0,  f:8,   k:198 },
-    { name: 'Merluza',               p:17, c:0,  f:1.5, k:86  },
-    { name: 'Bacalao',               p:18, c:0,  f:0.7, k:82  },
-    { name: 'Sardina',               p:21, c:0,  f:10,  k:185 },
-    { name: 'Dorada/Lubina',         p:19, c:0,  f:3,   k:105 },
-    { name: 'Gambas/Langostinos',    p:18, c:1,  f:1,   k:85  },
-    { name: 'Calamar',               p:16, c:1,  f:1,   k:75  },
-  ],
-  'Huevos y lácteos': [
-    { name: 'Huevo entero',          p:13, c:1.1,f:11,  k:155 },
-    { name: 'Clara de huevo',        p:11, c:0.7,f:0.2, k:52  },
-    { name: 'Leche entera',          p:3.3,c:4.7,f:3.6, k:61  },
-    { name: 'Leche desnatada',       p:3.4,c:4.9,f:0.1, k:35  },
-    { name: 'Yogur natural',         p:5.3,c:7.8,f:3.3, k:59  },
-    { name: 'Yogur griego',          p:9,  c:4,  f:10,  k:133 },
-    { name: 'Queso curado',          p:25, c:1.3,f:31,  k:402 },
-    { name: 'Queso fresco',          p:10, c:2,  f:8,   k:120 },
-    { name: 'Requesón',              p:12, c:4,  f:5,   k:105 },
-  ],
-  'Cereales y legumbres': [
-    { name: 'Arroz (cocido)',        p:2.7,c:28, f:0.3, k:130 },
-    { name: 'Pasta (cocida)',        p:5,  c:25, f:0.9, k:131 },
-    { name: 'Pan blanco',            p:9,  c:49, f:3,   k:265 },
-    { name: 'Pan integral',          p:9,  c:41, f:3,   k:247 },
-    { name: 'Avena',                 p:17, c:66, f:7,   k:389 },
-    { name: 'Quinoa (cocida)',       p:4.1,c:21, f:1.9, k:120 },
-    { name: 'Lentejas (cocidas)',    p:9,  c:20, f:0.4, k:116 },
-    { name: 'Garbanzos (cocidos)',   p:9,  c:27, f:2.6, k:164 },
-    { name: 'Alubias (cocidas)',     p:8,  c:22, f:0.5, k:127 },
-  ],
-  'Verduras y hortalizas': [
-    { name: 'Patata',                p:2,  c:17, f:0.1, k:77  },
-    { name: 'Boniato',               p:1.6,c:20, f:0.1, k:86  },
-    { name: 'Tomate',                p:0.9,c:3.9,f:0.2, k:18  },
-    { name: 'Cebolla',               p:1.1,c:9.3,f:0.1, k:40  },
-    { name: 'Zanahoria',             p:0.9,c:9.6,f:0.2, k:41  },
-    { name: 'Pimiento',              p:1,  c:6,  f:0.3, k:31  },
-    { name: 'Calabacín',             p:1.2,c:3.1,f:0.3, k:17  },
-    { name: 'Berenjena',             p:1,  c:5.7,f:0.2, k:25  },
-    { name: 'Espinacas',             p:2.9,c:3.6,f:0.4, k:23  },
-    { name: 'Brócoli',               p:2.8,c:7,  f:0.4, k:34  },
-    { name: 'Lechuga',               p:1.4,c:2.9,f:0.2, k:15  },
-    { name: 'Champiñón',             p:3.1,c:4,  f:0.3, k:22  },
-    { name: 'Ajo',                   p:6.4,c:33, f:0.5, k:149 },
-    { name: 'Puerro',                p:1.5,c:14, f:0.3, k:61  },
-  ],
-  'Frutas': [
-    { name: 'Plátano',               p:1.1,c:23, f:0.3, k:89  },
-    { name: 'Manzana',               p:0.3,c:14, f:0.2, k:52  },
-    { name: 'Naranja',               p:0.9,c:12, f:0.1, k:47  },
-    { name: 'Fresa',                 p:0.7,c:8,  f:0.3, k:32  },
-    { name: 'Uva',                   p:0.6,c:18, f:0.2, k:69  },
-    { name: 'Sandía',                p:0.6,c:8,  f:0.2, k:30  },
-    { name: 'Aguacate',              p:2,  c:9,  f:15,  k:160 },
-  ],
-  'Grasas y salsas': [
-    { name: 'Aceite de oliva',       p:0,  c:0,  f:100, k:884 },
-    { name: 'Aceite de girasol',     p:0,  c:0,  f:100, k:884 },
-    { name: 'Mantequilla',           p:0.9,c:0.1,f:81,  k:717 },
-    { name: 'Mayonesa',              p:1.6,c:0.6,f:75,  k:680 },
-    { name: 'Tomate frito',          p:1.5,c:10, f:3,   k:75  },
-    { name: 'Nata para cocinar',     p:2.4,c:3.5,f:20,  k:200 },
-  ],
-  'Frutos secos': [
-    { name: 'Almendras',             p:21, c:22, f:50,  k:579 },
-    { name: 'Nueces',                p:15, c:14, f:65,  k:654 },
-    { name: 'Cacahuetes',            p:26, c:16, f:49,  k:567 },
-  ],
-};
-
-let catTarget = null;
-window._catItems = {}; // Map id -> item para evitar JSON en atributos
-
-function openCat(ingId) {
-  catTarget = ingId;
-  const r = ingRows.find(r=>r.id==ingId);
-  document.getElementById('cat-title').textContent = r?.name ? `"${r.name}" — ¿qué es?` : '¿Qué tipo de alimento?';
+// Abre el picker para AÑADIR un nuevo ingrediente
+function openCatForNew() {
+  catTarget = null;
+  document.getElementById('cat-title').textContent = '¿Qué ingrediente quieres añadir?';
   const s = document.getElementById('cat-search'); if (s) s.value = '';
   renderCatBody();
   document.getElementById('cat-overlay').classList.add('open');
   setTimeout(() => s?.focus(), 150);
 }
+window.openCatForNew = openCatForNew;
+
+// Confirmar selección del picker — pide cantidad después
+function confirmCat(item) {
+  closeCat();
+  // Pedir cantidad
+  const qty = prompt(`¿Cuántos gramos de "${item.name}"?`, '100');
+  if (qty === null) return; // cancelado
+  const id = 'ing_' + Date.now();
+  dishIngredients.push({
+    id,
+    name: item.name,
+    qty: parseFloat(qty) || 100,
+    unit: 'g',
+    macros100: item.k != null ? { k: item.k, p: item.p||0, c: item.c||0, f: item.f||0 } : null
+  });
+  // Ofrecer guardar en biblioteca si no está
+  const lib = window._ingLib || [];
+  const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
+  if (!alreadySaved && item.k != null) {
+    setTimeout(() => {
+      if (confirm(`¿Guardar "${item.name}" en tu biblioteca para usarlo en otras recetas?`)) {
+        saveToIngLib({ name: item.name, p: item.p, c: item.c, f: item.f, k: item.k });
+      }
+    }, 200);
+  }
+  renderIngList();
+}
+window.confirmCat = confirmCat;
+
+function confirmCatKey(key) {
+  const item = window._catItems?.[key];
+  if (!item) return;
+  confirmCat(item);
+}
+window.confirmCatKey = confirmCatKey;
+
+function confirmManual() {
+  const k    = parseFloat(document.getElementById('m-k')?.value)||0;
+  const f    = parseFloat(document.getElementById('m-f')?.value)||0;
+  const c    = parseFloat(document.getElementById('m-c')?.value)||0;
+  const p    = parseFloat(document.getElementById('m-p')?.value)||0;
+  const fiber= parseFloat(document.getElementById('m-fiber')?.value)||0;
+  const salt = parseFloat(document.getElementById('m-salt')?.value)||0;
+  const name = prompt('Nombre del ingrediente:', '') || 'Ingrediente manual';
+  const save = document.getElementById('m-save')?.checked;
+  closeCat();
+  const qty = prompt(`¿Cuántos gramos de "${name}"?`, '100');
+  if (qty === null) return;
+  const id = 'ing_' + Date.now();
+  dishIngredients.push({ id, name, qty: parseFloat(qty)||100, unit:'g', macros100:{k,p,c,f,fiber,salt} });
+  if (save) saveToIngLib({ name, p, c, f, k, fiber, salt });
+  renderIngList();
+}
+window.confirmManual = confirmManual;
+
+function confirmCatNone() {
+  const name = prompt('Nombre del ingrediente (sin macros):', '') || 'Ingrediente';
+  closeCat();
+  const qty = prompt(`¿Cuántos gramos de "${name}"?`, '100');
+  if (qty === null) return;
+  dishIngredients.push({ id:'ing_'+Date.now(), name, qty: parseFloat(qty)||100, unit:'g', macros100:null });
+  renderIngList();
+}
+window.confirmCatNone = confirmCatNone;
+
+function openCat(ingId) { openCatForNew(); } // compatibilidad — ya no se usa por id
 window.openCat = openCat;
+
+function getIngRows() { return dishIngredients; }
 
 function renderCatBody() {
   const body = document.getElementById('cat-body');
@@ -1508,14 +1253,16 @@ function renderCatBody() {
   const manualHtml = `
     <div class="cat-group" style="margin-top:8px">
       <div class="cat-group-title">Introducir manualmente</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
         <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="m-k" placeholder="165" min="0" style="text-align:center"/></div>
-        <div class="field" style="margin-bottom:0"><label>Prot(g)</label><input type="number" id="m-p" placeholder="20" min="0" style="text-align:center"/></div>
-        <div class="field" style="margin-bottom:0"><label>Carb(g)</label><input type="number" id="m-c" placeholder="0" min="0" style="text-align:center"/></div>
-        <div class="field" style="margin-bottom:0"><label>Gras(g)</label><input type="number" id="m-f" placeholder="5" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Grasas(g)</label><input type="number" id="m-f" placeholder="5" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Hidratos(g)</label><input type="number" id="m-c" placeholder="0" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Proteínas(g)</label><input type="number" id="m-p" placeholder="20" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Fibra(g)</label><input type="number" id="m-fiber" placeholder="0" min="0" style="text-align:center"/></div>
+        <div class="field" style="margin-bottom:0"><label>Sal(g)</label><input type="number" id="m-salt" placeholder="0" min="0" style="text-align:center"/></div>
       </div>
       <label class="save-toggle">
-        <input type="checkbox" id="m-save" />
+        <input type="checkbox" id="m-save"/>
         Guardar en mi biblioteca para usar en otras recetas
       </label>
       <button class="btn btn-accent" style="margin-top:8px" onclick="confirmManual()">Confirmar macros manuales</button>
@@ -1525,76 +1272,6 @@ function renderCatBody() {
   body.innerHTML = libHtml + stdHtml + manualHtml;
 }
 
-function confirmCatKey(key) {
-  const item = window._catItems[key];
-  if (!item) { console.error('confirmCatKey: key no encontrada', key); return; }
-  confirmCat(item);
-}
-window.confirmCatKey = confirmCatKey;
-
-function confirmCat(item) {
-  const r = getIngRows().find(r=>r.id==catTarget); if (!r) return;
-  r.macros100 = { p:item.p, c:item.c, f:item.f, k:item.k };
-  r.confirmed = true;
-  // Actualizar siempre el nombre con el del picker (nombre canónico)
-  r.name = item.name;
-  // Reflejar en el input visible
-  const inputEl = document.querySelector(`#ib-${r.id} input[type="text"]`);
-  if (inputEl) inputEl.value = item.name;
-  // Offer to save if not already in library
-  const lib = window._ingLib || [];
-  const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
-  closeCat();
-  updateIngBlock(r.id);
-  if (!alreadySaved) {
-    setTimeout(() => {
-      if (confirm(`¿Guardar "${item.name}" en tu biblioteca para usarlo en otras recetas?`)) {
-        saveToIngLib({ name: item.name, p: item.p, c: item.c, f: item.f, k: item.k });
-      }
-    }, 200);
-  }
-}
-window.confirmCat = confirmCat;
-
-function confirmManual() {
-  const k = parseFloat(document.getElementById('m-k').value) || 0;
-  const p = parseFloat(document.getElementById('m-p').value) || 0;
-  const c = parseFloat(document.getElementById('m-c').value) || 0;
-  const f = parseFloat(document.getElementById('m-f').value) || 0;
-  if (!k && !p && !c && !f) { toast('Introduce al menos un valor'); return; }
-  const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
-  r.macros100 = { k, p, c, f };
-  r.confirmed = true;
-  const shouldSave = document.getElementById('m-save')?.checked;
-  const ingName = r.name.trim();
-  closeCat(); renderIngRows();
-  if (shouldSave && ingName) {
-    saveToIngLib({ name: ingName, k, p, c, f });
-  }
-}
-window.confirmManual = confirmManual;
-
-async function saveToIngLib(item) {
-  const id = Date.now().toString();
-  await window._saveIngLibToDb({ id, ...item });
-  toast(`⭐ "${item.name}" guardado en tu biblioteca`);
-}
-window.saveToIngLib = saveToIngLib;
-
-async function deleteIngLib(id) {
-  await window._deleteIngLibFromDb(id);
-  renderCatBody();
-  toast('Ingrediente eliminado de la biblioteca');
-}
-window.deleteIngLib = deleteIngLib;
-
-function confirmCatNone() {
-  const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
-  r.macros100 = null; r.confirmed = true;
-  closeCat(); renderIngRows();
-}
-window.confirmCatNone = confirmCatNone;
-
 function closeCat(e) {
   if (e && e.target !== document.getElementById('cat-overlay')) return;
   document.getElementById('cat-overlay').classList.remove('open');
@@ -1603,37 +1280,65 @@ function closeCat(e) {
 }
 window.closeCat = closeCat;
 // ── SAVE DISH ──
+
+function calcMacros(ings) {
+  let k=0, p=0, c=0, f=0;
+  (ings||[]).forEach(r => {
+    const m = r.macros100; if (!m) return;
+    const qty = parseFloat(r.qty)||0;
+    k += m.k * qty / 100;
+    p += m.p * qty / 100;
+    c += m.c * qty / 100;
+    f += m.f * qty / 100;
+  });
+  return { k: Math.round(k), p: Math.round(p), c: Math.round(c), f: Math.round(f) };
+}
+
+function updateMacroPreview() {
+  const el = document.getElementById('macro-preview');
+  if (!el) return;
+  const servings = Math.max(1, parseInt(document.getElementById('f-servings')?.value)||1);
+  const total = calcMacros(dishIngredients);
+  if (!total.k && !total.p) {
+    el.innerHTML = '<span style="font-size:0.7rem;color:var(--muted)">Añade ingredientes para calcular macros</span>';
+    return;
+  }
+  const per = { k: Math.round(total.k/servings), p: Math.round(total.p/servings),
+                c: Math.round(total.c/servings), f: Math.round(total.f/servings) };
+  el.innerHTML = `
+    <div style="font-size:0.65rem;color:var(--muted);width:100%;margin-bottom:4px">Por ración (${servings} raciones):</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <span style="font-size:0.82rem;font-weight:700;color:var(--accent)">🔥 ${per.k} kcal</span>
+      <span style="font-size:0.78rem;color:#6db4e8;font-weight:600">P ${per.p}g</span>
+      <span style="font-size:0.78rem;color:#e8c06d;font-weight:600">C ${per.c}g</span>
+      <span style="font-size:0.78rem;color:#e8836d;font-weight:600">G ${per.f}g</span>
+    </div>`;
+}
+window.updateMacroPreview = updateMacroPreview;
+
 async function saveDish() {
   const name = document.getElementById('f-name').value.trim();
   if (!name) { document.getElementById('f-name').focus(); return; }
-  const prep  = document.getElementById('f-prep').value.trim();
-  const url   = document.getElementById('f-url').value.trim();
+  const prep     = document.getElementById('f-prep').value.trim();
+  const url      = document.getElementById('f-url').value.trim();
   const servings = Math.max(1, parseInt(document.getElementById('f-servings').value)||1);
-  const ings  = getIngRows().filter(r=>r.name.trim());
+  const ings     = dishIngredients.filter(r => r.name.trim());
   const totalMacros = calcMacros(ings);
-  // Macros por ración
   const macros = totalMacros.k
     ? { p: Math.round(totalMacros.p/servings), c: Math.round(totalMacros.c/servings),
         f: Math.round(totalMacros.f/servings), k: Math.round(totalMacros.k/servings) }
     : null;
   const id = editId || Date.now().toString();
-
-  // Guardar partes si hay más de una o la parte tiene nombre
-  const hasRealParts = dishParts.length > 1 || dishParts[0]?.name;
-  const partsToSave = hasRealParts ? dishParts.map(p => ({
-    id: p.id, name: p.name,
-    rows: p.rows.filter(r=>r.name.trim())
-  })) : null;
-  const dish = { id, name, prep, url, servings, ingredients: ings, macros, ...(partsToSave ? {parts: partsToSave} : {}) };
+  const dish = { id, name, prep, url, servings, ingredients: ings, macros };
   await window._saveDishToDb(dish);
-
   if (editId) { cancelEdit(); toast('Plato actualizado'); showRecetasLanding(); }
   else {
-    document.getElementById('f-name').value='';
-    document.getElementById('f-prep').value='';
-    document.getElementById('f-url').value='';
-    document.getElementById('f-servings').value='';
-    dishParts=[{id:'part_default',name:'',rows:[]}]; ingRows=dishParts[0].rows; renderPartsList();
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-prep').value = '';
+    document.getElementById('f-url').value  = '';
+    document.getElementById('f-servings').value = '';
+    dishIngredients = [];
+    renderIngList();
     toast('✅ Plato guardado — consulta tus recetas para verlo');
   }
 }
@@ -1642,38 +1347,37 @@ window.saveDish = saveDish;
 function editDish(id) {
   const d = gd(id); if (!d) return;
   editId = id;
-  document.getElementById('f-name').value = d.name;
-  document.getElementById('f-prep').value = d.prep||'';
-  document.getElementById('f-url').value  = d.url||'';
+  document.getElementById('f-name').value     = d.name;
+  document.getElementById('f-prep').value     = d.prep||'';
+  document.getElementById('f-url').value      = d.url||'';
   document.getElementById('f-servings').value = d.servings||1;
-  // Cargar partes si existen, compatibilidad con recetas antiguas (sin partes)
-  if (d.parts && d.parts.length) {
-    dishParts = d.parts.map(p => ({
-      ...p,
-      rows: (p.rows||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}))
-    }));
-  } else {
-    dishParts = [{id:'part_default',name:'',rows:(d.ingredients||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}))}];
-  }
-  ingRows = dishParts[0].rows;
-  renderPartsList();
-  document.getElementById('form-mode-label').textContent = 'Editar plato';
-  document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
-  document.getElementById('save-dish-btn').textContent = 'Actualizar plato';
-  document.getElementById('dish-form-card').scrollIntoView({behavior:'smooth'});
+  // Cargar ingredientes (soporta formato antiguo con parts)
+  const rawIngs = d.parts?.length ? d.parts.flatMap(p=>p.rows||[]) : (d.ingredients||[]);
+  dishIngredients = rawIngs.map(i => ({
+    id: 'ing_' + Date.now() + Math.random(),
+    name:      i.name      || '',
+    qty:       i.qty       || 100,
+    unit:      i.unit      || 'g',
+    macros100: i.macros100 || null
+  }));
+  renderIngList();
+  document.getElementById('form-mode-label').textContent = 'Editando: ' + d.name;
+  document.getElementById('cancel-edit-btn').style.display = '';
+  showRecetasForm();
 }
 window.editDish = editDish;
 
 function cancelEdit() {
-  editId=null;
-  document.getElementById('f-name').value='';
-  document.getElementById('f-prep').value='';
-  document.getElementById('f-url').value='';
-  document.getElementById('f-servings').value='';
-  dishParts=[{id:'part_default',name:'',rows:[]}]; ingRows=dishParts[0].rows; renderPartsList();
-  document.getElementById('form-mode-label').textContent='Nuevo plato';
-  document.getElementById('cancel-edit-btn').style.display='none';
-  document.getElementById('save-dish-btn').textContent='Guardar plato';
+  editId = null;
+  document.getElementById('f-name').value     = '';
+  document.getElementById('f-prep').value     = '';
+  document.getElementById('f-url').value      = '';
+  document.getElementById('f-servings').value = '';
+  dishIngredients = [];
+  renderIngList();
+  document.getElementById('form-mode-label').textContent = 'Nuevo plato';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+  document.getElementById('save-dish-btn').textContent = 'Guardar plato';
 }
 window.cancelEdit = cancelEdit;
 
@@ -3856,10 +3560,71 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── NAVEGACIÓN PRINCIPAL ──
+function switchView(v) {
+  window._activeView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  const viewEl = document.getElementById(`view-${v}`);
+  if (viewEl) viewEl.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${v}`);
+  if (navEl) navEl.classList.add('active');
+  if (v==='semana')     renderSemana();
+  if (v==='recetas')    showRecetasLanding();
+  if (v==='compra')     renderCompra();
+  if (v==='stats')      renderStats();
+  if (v==='biblioteca') showBibLanding();
+}
+window.switchView = switchView;
+
+// ── RECETAS SUB-VISTAS ──
+function showRecetasLanding() {
+  const l = document.getElementById('recetas-landing');
+  const n = document.getElementById('recetas-nueva');
+  const li = document.getElementById('recetas-lista');
+  if (l) l.style.display = 'block';
+  if (n) n.style.display = 'none';
+  if (li) li.style.display = 'none';
+}
+window.showRecetasLanding = showRecetasLanding;
+
+function showRecetasSub(sub) {
+  const l = document.getElementById('recetas-landing');
+  const n = document.getElementById('recetas-nueva');
+  const li = document.getElementById('recetas-lista');
+  if (l) l.style.display = 'none';
+  if (n) n.style.display = sub==='nueva' ? 'block' : 'none';
+  if (li) li.style.display = sub==='lista' ? 'block' : 'none';
+  if (sub==='lista') renderRecetas();
+}
+window.showRecetasSub = showRecetasSub;
+
+// ── BIBLIOTECA SUB-VISTAS ──
+function showBibLanding() {
+  const l = document.getElementById('bib-landing');
+  const n = document.getElementById('bib-nueva');
+  const li = document.getElementById('bib-lista');
+  if (l) l.style.display = 'block';
+  if (n) n.style.display = 'none';
+  if (li) li.style.display = 'none';
+}
+window.showBibLanding = showBibLanding;
+
+function showBibSub(sub) {
+  const l = document.getElementById('bib-landing');
+  const n = document.getElementById('bib-nueva');
+  const li = document.getElementById('bib-lista');
+  if (l) l.style.display = 'none';
+  if (n) n.style.display = sub==='nueva' ? 'block' : 'none';
+  if (li) li.style.display = sub==='lista' ? 'block' : 'none';
+  if (sub==='lista') renderLibList();
+}
+window.showBibSub = showBibSub;
+
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
-renderPartsList();
+renderIngList();
 // Arrancar en Recetas
 switchView('recetas');
 </script>
