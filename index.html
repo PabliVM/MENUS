@@ -1815,19 +1815,30 @@ function buildWgCell(dayIdx, meal, profiles) {
   inner += `<button class="wg-add-btn" style="margin-top:4px"
     onclick="event.stopPropagation();toggleCellDropdown('${cellKey}',${dayIdx},'${meal}')">+ Asignar</button>
   <div id="${cellKey}-drop" style="display:none;position:absolute;z-index:200;background:var(--surface2);
-    border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:130px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.4);bottom:100%;left:0;margin-bottom:4px">
-    ${allEntities.length === 0 ? '<div style="font-size:0.7rem;color:var(--muted);padding:4px">Crea personas primero</div>' :
-      allEntities.map(e => `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:0.75rem;font-weight:600"
-        onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
-        <div style="width:8px;height:8px;border-radius:50%;background:${e.color}"></div>
-        <span style="color:${e.color}">${e.name}</span>
-      </div>`).join('')
+    border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:155px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);top:calc(100% + 4px);left:0">
+    ${persons.length === 0
+      ? '<div style="font-size:0.7rem;color:var(--muted);padding:4px 8px">Crea personas en ⚙️</div>'
+      : `<div style="font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 8px 3px">Personas</div>
+        ${persons.map(e => `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer"
+          onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
+          <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+          <span style="font-size:0.82rem;font-weight:600;color:${e.color}">${e.name}</span>
+        </div>`).join('')}
+        ${groups.length ? `
+          <div style="border-top:1px solid var(--border2);margin:3px 0"></div>
+          <div style="font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:2px 8px 3px">Grupos</div>
+          ${groups.map(e => `<div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:7px;cursor:pointer"
+            onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
+            <div style="width:8px;height:8px;border-radius:50%;background:${e.color};flex-shrink:0"></div>
+            <span style="font-size:0.82rem;font-weight:600;color:${e.color}">${e.name}</span>
+          </div>`).join('')}` : ''}
+      `
     }
-    <div style="border-top:1px solid var(--border2);margin-top:4px;padding-top:4px">
-      <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:0.72rem;color:var(--muted)"
+    <div style="border-top:1px solid var(--border2);margin-top:3px;padding-top:3px">
+      <div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:7px;cursor:pointer"
         onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','all')">
-        Sin asignar (general)
+        <span style="font-size:0.75rem;color:var(--muted)">General (sin asignar)</span>
       </div>
     </div>
   </div>`;
