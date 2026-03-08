@@ -285,6 +285,121 @@ header {
 .profile-meal-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .profile-meal-name { font-size:0.68rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
 
+
+/* ── WEEK GRID ── */
+.week-grid {
+  display: grid;
+  /* col 0 = etiqueta comida, cols 1-7 = días */
+  grid-template-columns: 52px repeat(7, minmax(88px, 1fr));
+  gap: 3px;
+  min-width: calc(52px + 7 * 92px);
+}
+.wg-header-day {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 5px 4px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.wg-header-day.today {
+  background: var(--accent)22;
+  color: var(--accent);
+}
+.wg-meal-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  padding: 4px 0;
+  color: var(--muted);
+}
+.wg-cell {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 5px;
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+}
+.wg-cell:active { background: var(--surface); }
+.wg-dish {
+  font-size: 0.62rem;
+  color: var(--ink);
+  line-height: 1.3;
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: var(--surface);
+  display: flex;
+  align-items: flex-start;
+  gap: 3px;
+}
+.wg-dish-name { flex: 1; word-break: break-word; }
+.wg-dish-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.55rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.wg-profile-sep {
+  border: none;
+  border-top: 1px dashed var(--border2);
+  margin: 2px 0;
+}
+.wg-add-btn {
+  background: none;
+  border: 1px dashed var(--border2);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  width: 100%;
+  text-align: center;
+  margin-top: auto;
+}
+.wg-add-btn:active { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+.wg-profile-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+
+/* ── STATS ── */
+.stats-macro-block { background:var(--surface2); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+.stats-kcal-big { font-size:2.8rem; font-weight:800; color:var(--accent); line-height:1; }
+.stats-kcal-label { font-size:0.65rem; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-top:2px; }
+.stats-macro-row { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.stats-macro-pill { flex:1; min-width:70px; background:var(--surface); border-radius:9px; padding:8px 10px; text-align:center; }
+.stats-macro-pill .val { font-size:1.1rem; font-weight:700; }
+.stats-macro-pill .lbl { font-size:0.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+.stats-day-chips { display:flex; gap:5px; flex-wrap:nowrap; overflow-x:auto; margin-bottom:12px; padding-bottom:4px; }
+.stats-day-chip { flex-shrink:0; padding:5px 10px; border-radius:20px; border:1.5px solid var(--border2); background:var(--surface2); font-size:0.72rem; cursor:pointer; text-align:center; }
+.stats-day-chip.active { background:var(--accent)22; border-color:var(--accent); color:var(--accent); font-weight:700; }
+.stats-week-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.stats-week-bar-track { flex:1; height:8px; background:var(--surface); border-radius:4px; overflow:hidden; }
+.stats-week-bar-fill { height:100%; background:var(--accent); border-radius:4px; transition:width 0.3s; }
+.stats-week-day-label { font-size:0.65rem; color:var(--muted); width:28px; flex-shrink:0; }
+.stats-week-day-val { font-size:0.65rem; color:var(--muted); width:44px; text-align:right; flex-shrink:0; }
+.stats-hist-card { background:var(--surface2); border-radius:10px; padding:12px 14px; margin-bottom:8px; border:1.5px solid var(--border); cursor:pointer; }
+.stats-hist-card.expanded { border-color:var(--accent)55; }
+.stats-hist-label { font-size:0.82rem; font-weight:600; margin-bottom:4px; }
+.stats-hist-kcal { font-size:1.4rem; font-weight:800; color:var(--accent); }
+.stats-profile-compare { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.stats-profile-compare-pill { flex:1; min-width:80px; border-radius:9px; padding:8px 10px; background:var(--surface); text-align:center; border:1.5px solid var(--border); }
+
 /* LANDING OPTIONS */
 .landing-options { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .landing-card {
@@ -372,24 +487,23 @@ header {
 
 <!-- VIEWS -->
 
-<div class="view" id="view-semana" style="padding:16px">
-  <br>
+<div class="view" id="view-semana" style="padding:12px 0 12px 12px">
   <!-- SELECTOR DE SEMANA -->
-  <div class="week-selector">
-    <button class="week-nav-btn" onclick="navigateWeek(-1)">‹</button>
-    <div class="week-selector-label" id="week-selector-label">Semana actual</div>
-    <button class="week-nav-btn" onclick="navigateWeek(1)">›</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-right:12px">
+    <div class="week-selector" style="flex:1;margin:0">
+      <button class="week-nav-btn" onclick="navigateWeek(-1)">‹</button>
+      <div class="week-selector-label" id="week-selector-label">Semana actual</div>
+      <button class="week-nav-btn" onclick="navigateWeek(1)">›</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="openPersonConfig()" style="flex-shrink:0;margin-left:8px">⚙️</button>
   </div>
   <div id="week-selector-dropdown" style="display:none"></div>
-  <!-- Person tabs -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <div class="person-tabs" id="person-tabs"></div>
-    <button class="btn btn-ghost btn-sm" onclick="openPersonConfig()" style="flex-shrink:0">⚙️ Personas</button>
+  <div class="week-bar" id="week-bar" style="margin-bottom:10px;margin-right:12px"></div>
+  <!-- GRID SEMANA -->
+  <div id="week-grid-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+    <div id="week-grid"></div>
   </div>
-  <div class="week-bar" id="week-bar"></div>
-  <div class="day-scroll" id="day-scroll"></div>
-  <div id="meals-container"></div>
-  <div style="display:flex;gap:8px;margin-top:14px">
+  <div style="display:flex;gap:8px;margin-top:12px;padding-right:12px">
     <button class="btn btn-green" style="flex:1" onclick="saveWeek()">💾 Guardar semana</button>
     <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">📋 Historial</button>
   </div>
@@ -434,8 +548,15 @@ header {
 <div class="view" id="view-stats" style="padding:16px">
   <br>
   <div class="sec-title">Estadísticas</div>
-  <!-- Filtros stats -->
-  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="stats-person-filter"></div>
+  <!-- Selector perfil -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="stats-person-filter"></div>
+  <!-- Navegación vista -->
+  <div style="display:flex;gap:6px;margin-bottom:14px">
+    <button class="filter-chip active" id="stats-tab-day"     onclick="setStatsTab('day')">📅 Día</button>
+    <button class="filter-chip"        id="stats-tab-week"    onclick="setStatsTab('week')">📆 Semana</button>
+    <button class="filter-chip"        id="stats-tab-history" onclick="setStatsTab('history')">📚 Historial</button>
+  </div>
+  <!-- Contenido dinámico -->
   <div id="stats-content"></div>
 </div>
 
@@ -1499,10 +1620,8 @@ function calcWeekTotals() {
 }
 
 function renderSemana() {
-  try { renderPersonTabs(); } catch(e) { console.warn('renderPersonTabs:', e); }
   try { renderWeekBar(); }    catch(e) { console.warn('renderWeekBar:', e); }
-  try { renderDayScroll(); }  catch(e) { console.warn('renderDayScroll:', e); }
-  try { renderMeals(); }      catch(e) { console.warn('renderMeals:', e); }
+  try { renderWeekGrid(); }   catch(e) { console.warn('renderWeekGrid:', e); }
 }
 window.renderSemana = renderSemana;
 
@@ -1516,6 +1635,103 @@ function renderPersonTabs() {
       onclick="selPerson='${p.id}';renderSemana()">${p.name}</button>`;
   }).join('');
 }
+
+
+
+function renderWeekGrid() {
+  const profiles = window._profiles || [];
+  const mon = getWeekMonday(window._weekOffset || 0);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const grid = document.getElementById('week-grid');
+  if (!grid) return;
+
+  // Calcular fechas de la semana
+  const weekDates = DAYS.map((_, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    return d;
+  });
+
+  // Número de columnas: 1 etiqueta + 7 días
+  grid.style.gridTemplateColumns = `52px repeat(7, minmax(88px, 1fr))`;
+  grid.className = 'week-grid';
+
+  let html = '';
+
+  // ── FILA CABECERA ──
+  // Celda vacía esquina
+  html += `<div></div>`;
+  // Headers días
+  weekDates.forEach((date, i) => {
+    const isToday = date.getTime() === today.getTime();
+    const dayNum = date.getDate();
+    const dayShort = DAYS[i].substring(0, 2).toUpperCase();
+    html += `<div class="wg-header-day ${isToday ? 'today' : ''}">
+      <div>${dayShort}</div>
+      <div style="font-size:0.7rem;font-weight:400;opacity:0.8">${dayNum}</div>
+    </div>`;
+  });
+
+  // ── FILAS COMIDAS ──
+  MEALS.forEach(({id: meal, label, icon}) => {
+    // Etiqueta de comida
+    html += `<div class="wg-meal-label" title="${label}">${icon}</div>`;
+
+    // Celdas por día
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+      html += buildWgCell(dayIdx, meal, profiles);
+    }
+  });
+
+  grid.innerHTML = html;
+}
+window.renderWeekGrid = renderWeekGrid;
+
+function buildWgCell(dayIdx, meal, profiles) {
+  const sharedEntries = window._week?.[sk(dayIdx, meal, 'all')] || [];
+
+  const buildDishHTML = (entries, profileId) => entries.map(e => {
+    if (e?.free) return `<div class="wg-dish">
+      <span class="wg-dish-name">📝 ${e.name}</span>
+      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${e.id}','${profileId}')">✕</button>
+    </div>`;
+    const d = gd(typeof e === 'string' ? e : e.id);
+    if (!d) return '';
+    return `<div class="wg-dish">
+      <span class="wg-dish-name">${d.name}</span>
+      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${d.id}','${profileId}')">✕</button>
+    </div>`;
+  }).join('');
+
+  let inner = '';
+
+  if (profiles.length === 0) {
+    // Sin perfiles — todo va a 'all'
+    inner = buildDishHTML(sharedEntries, 'all');
+    inner += `<button class="wg-add-btn" onclick="openPicker(${dayIdx},'${meal}','all')">+</button>`;
+  } else {
+    profiles.forEach((profile, i) => {
+      if (i > 0) inner += `<hr class="wg-profile-sep">`;
+      const entries = window._week?.[sk(dayIdx, meal, profile.id)] || [];
+      const allEntries = i === 0 ? [...sharedEntries, ...entries] : entries;
+      const dishes = buildDishHTML(allEntries, profile.id);
+      inner += `<div>
+        <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
+          <div class="wg-profile-dot" style="background:${profile.color}"></div>
+          <span style="font-size:0.55rem;font-weight:700;color:${profile.color};text-transform:uppercase;letter-spacing:0.4px">${profile.name}</span>
+          <button class="wg-add-btn" style="width:auto;padding:1px 5px;margin:0 0 0 auto;border-radius:4px;font-size:0.65rem"
+            onclick="event.stopPropagation();openPicker(${dayIdx},'${meal}','${profile.id}')">+</button>
+        </div>
+        ${dishes}
+      </div>`;
+    });
+  }
+
+  return `<div class="wg-cell">${inner}</div>`;
+}
+window.buildWgCell = buildWgCell;
 
 function renderWeekBar() {
   const {k,pr,unique} = calcWeekTotals();
@@ -1941,6 +2157,25 @@ window.clearHistory = clearHistory;
 
 // ── STATS ──
 let statsPersonFilter = 'all';
+let statsTab = 'day';
+let statsDayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // hoy (0=lun)
+let statsHistExpanded = null;
+
+function setStatsTab(tab) {
+  statsTab = tab;
+  ['day','week','history'].forEach(t => {
+    const btn = document.getElementById('stats-tab-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  renderStats();
+}
+window.setStatsTab = setStatsTab;
+
+function setStatsDayIdx(i) {
+  statsDayIdx = i;
+  renderStats();
+}
+window.setStatsDayIdx = setStatsDayIdx;
 
 function renderStatsPersonFilter() {
   const el = document.getElementById('stats-person-filter');
@@ -1955,95 +2190,210 @@ function renderStatsPersonFilter() {
   }).join('');
 }
 
-function getStatsKcalForPerson(h, pid) {
-  // Sumar kcal del historial para una persona concreta
-  // slots tiene keys como "0-lunch-all", "0-lunch-personId"
-  let k = 0;
+// ── Macros de la semana actual (window._week) para un perfil ──
+function getMacrosFromWeek(pid) {
+  // Devuelve array de 7 elementos {k,p,c,f,salt,fiber} por día
+  const days = Array.from({length:7}, () => ({k:0,p:0,c:0,f:0,salt:0,fiber:0,count:0}));
+  if (!window._week) return days;
+  const pids = pid === 'all'
+    ? ['all', ...(window._profiles||[]).map(x=>x.id)]
+    : ['all', pid];
+  for (let d = 0; d < 7; d++) {
+    MEALS.forEach(({id:m}) => {
+      pids.forEach(slotPid => {
+        (window._week?.[sk(d,m,slotPid)]||[]).forEach(e => {
+          if (e?.free) return;
+          const dish = gd(typeof e==='string'?e:e.id);
+          if (!dish) return;
+          const mac = dish.macros || {};
+          days[d].k    += mac.k    || 0;
+          days[d].p    += mac.p    || 0;
+          days[d].c    += mac.c    || 0;
+          days[d].f    += mac.f    || 0;
+          days[d].salt += mac.salt || 0;
+          days[d].fiber+= mac.fiber|| 0;
+          days[d].count++;
+        });
+      });
+    });
+  }
+  return days;
+}
+
+// ── Macros de un historial para un perfil ──
+function getMacrosFromHistory(h, pid) {
+  const days = Array.from({length:7}, () => ({k:0,p:0,c:0,f:0,salt:0,fiber:0}));
+  const pids = pid === 'all'
+    ? ['all', ...(window._profiles||[]).map(x=>x.id)]
+    : ['all', pid];
   Object.entries(h.slots||{}).forEach(([key, arr]) => {
     const parts = key.split('-');
+    const d = parseInt(parts[0]);
     const slotPid = parts[2] || 'all';
-    if (pid === 'all' || slotPid === pid || slotPid === 'all') {
-      (arr||[]).forEach(dish => { k += dish.macros?.k || 0; });
-    }
+    if (!pids.includes(slotPid)) return;
+    if (d < 0 || d > 6) return;
+    (arr||[]).forEach(dish => {
+      if (dish?.free) return;
+      const mac = dish.macros || {};
+      days[d].k    += mac.k    || 0;
+      days[d].p    += mac.p    || 0;
+      days[d].c    += mac.c    || 0;
+      days[d].f    += mac.f    || 0;
+      days[d].salt += mac.salt || 0;
+      days[d].fiber+= mac.fiber|| 0;
+    });
   });
-  return k;
+  return days;
+}
+
+function macroBlock(dayMacros) {
+  const {k,p,c,f,salt,fiber} = dayMacros;
+  const hasMacros = k > 0 || p > 0;
+  if (!hasMacros) return `<div class="stats-macro-block" style="text-align:center;color:var(--muted);font-size:0.8rem;padding:20px">Sin datos para este día</div>`;
+  return `<div class="stats-macro-block">
+    <div class="stats-kcal-big">${Math.round(k)}</div>
+    <div class="stats-kcal-label">kcal totales</div>
+    <div class="stats-macro-row">
+      <div class="stats-macro-pill">
+        <div class="val" style="color:#6db4e8">${Math.round(p)}g</div>
+        <div class="lbl">Proteínas</div>
+      </div>
+      <div class="stats-macro-pill">
+        <div class="val" style="color:#e8c06d">${Math.round(c)}g</div>
+        <div class="lbl">Carbos</div>
+      </div>
+      <div class="stats-macro-pill">
+        <div class="val" style="color:#e8836d">${Math.round(f)}g</div>
+        <div class="lbl">Grasas</div>
+      </div>
+      ${salt ? `<div class="stats-macro-pill">
+        <div class="val" style="color:var(--muted)">${salt.toFixed(1)}g</div>
+        <div class="lbl">Sal</div>
+      </div>` : ''}
+      ${fiber ? `<div class="stats-macro-pill">
+        <div class="val" style="color:#4a9e6b">${Math.round(fiber)}g</div>
+        <div class="lbl">Fibra</div>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+
+function weekBarsHTML(days) {
+  const maxK = Math.max(...days.map(d=>d.k), 1);
+  return days.map((d, i) => `
+    <div class="stats-week-row">
+      <div class="stats-week-day-label">${DAYS[i].substring(0,2)}</div>
+      <div class="stats-week-bar-track">
+        <div class="stats-week-bar-fill" style="width:${d.k?Math.round(d.k/maxK*100):0}%"></div>
+      </div>
+      <div class="stats-week-day-val">${d.k ? Math.round(d.k)+'k' : '—'}</div>
+    </div>`).join('');
 }
 
 function renderStats() {
   renderStatsPersonFilter();
   const el = document.getElementById('stats-content');
-  const history = window._history||[];
-  if (!history.length) {
-    el.innerHTML='<div style="color:var(--muted);font-size:0.82rem;text-align:center;padding:30px 0">Guarda al menos una semana<br>para ver estadísticas.</div>';
-    return;
+  if (!el) return;
+
+  if (statsTab === 'day') {
+    // ── VISTA DÍA ──
+    const days = getMacrosFromWeek(statsPersonFilter);
+    const mon = getWeekMonday(window._weekOffset || 0);
+    const dayChips = DAYS.map((day, i) => {
+      const date = new Date(mon); date.setDate(mon.getDate() + i);
+      const num = date.getDate();
+      return `<div class="stats-day-chip ${i===statsDayIdx?'active':''}"
+        onclick="setStatsDayIdx(${i})">
+        <div>${day.substring(0,2)}</div>
+        <div style="font-size:0.65rem;opacity:0.7">${num}</div>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="stats-day-chips">${dayChips}</div>
+      ${macroBlock(days[statsDayIdx])}
+      <div class="stats-macro-block" style="padding:10px 14px">
+        <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Esta semana — kcal por día</div>
+        ${weekBarsHTML(days)}
+      </div>`;
+
+  } else if (statsTab === 'week') {
+    // ── VISTA SEMANA ──
+    const days = getMacrosFromWeek(statsPersonFilter);
+    const totals = days.reduce((acc, d) => {
+      acc.k += d.k; acc.p += d.p; acc.c += d.c;
+      acc.f += d.f; acc.salt += d.salt; acc.fiber += d.fiber;
+      return acc;
+    }, {k:0,p:0,c:0,f:0,salt:0,fiber:0});
+    const activeDays = days.filter(d=>d.k>0).length || 1;
+
+    el.innerHTML = `
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">Total semana actual</div>
+      ${macroBlock(totals)}
+      <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:10px 0 6px">Promedio por día (${activeDays} días con datos)</div>
+      ${macroBlock({k:totals.k/activeDays,p:totals.p/activeDays,c:totals.c/activeDays,f:totals.f/activeDays,salt:totals.salt/activeDays,fiber:totals.fiber/activeDays})}
+      <div class="stats-macro-block" style="padding:10px 14px">
+        <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Kcal por día</div>
+        ${weekBarsHTML(days)}
+      </div>`;
+
+  } else {
+    // ── VISTA HISTORIAL ──
+    const history = window._history || [];
+    if (!history.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;text-align:center;padding:30px 0">Guarda al menos una semana<br>para ver el historial.</div>';
+      return;
+    }
+    const profiles = window._profiles || [];
+    el.innerHTML = history.slice(0,12).map(h => {
+      const days = getMacrosFromHistory(h, statsPersonFilter);
+      const totals = days.reduce((acc,d)=>({k:acc.k+d.k,p:acc.p+d.p,c:acc.c+d.c,f:acc.f+d.f,salt:acc.salt+d.salt,fiber:acc.fiber+d.fiber}),{k:0,p:0,c:0,f:0,salt:0,fiber:0});
+      const expanded = statsHistExpanded === h.id;
+      const profileCompare = profiles.length > 0 ? `
+        <div class="stats-profile-compare">
+          ${profiles.map(p => {
+            const pDays = getMacrosFromHistory(h, p.id);
+            const pK = pDays.reduce((a,d)=>a+d.k, 0);
+            return `<div class="stats-profile-compare-pill" style="border-color:${p.color}44">
+              <div style="font-size:0.6rem;font-weight:700;color:${p.color}">${p.name}</div>
+              <div style="font-size:1rem;font-weight:700;color:${p.color}">${pK?Math.round(pK/7):'—'}</div>
+              <div style="font-size:0.55rem;color:var(--muted)">kcal/día</div>
+            </div>`;
+          }).join('')}
+        </div>` : '';
+
+      return `<div class="stats-hist-card ${expanded?'expanded':''}" onclick="statsHistExpanded=statsHistExpanded==='${h.id}'?null:'${h.id}';renderStats()">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="stats-hist-label">${h.label}</div>
+          <span style="color:var(--muted);font-size:0.8rem">${expanded?'▴':'▾'}</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:6px">
+          <div class="stats-hist-kcal">${totals.k?Math.round(totals.k/7):'—'}</div>
+          <div style="font-size:0.65rem;color:var(--muted)">kcal/día prom</div>
+        </div>
+        ${expanded ? `
+          ${macroBlock({...totals, k: totals.k/7, p: totals.p/7, c: totals.c/7, f: totals.f/7, salt: totals.salt/7, fiber: totals.fiber/7})}
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin:8px 0 4px">Por día</div>
+          ${weekBarsHTML(days)}
+          ${profileCompare}
+          <button class="btn btn-danger btn-sm" style="margin-top:10px;font-size:0.65rem" onclick="event.stopPropagation();deleteHistEntry('${h.id}')">🗑 Borrar esta semana</button>
+        ` : ''}
+      </div>`;
+    }).join('');
   }
-
-  const counts = {};
-  let kcalsByWeek = [];
-  history.slice(0,8).forEach(h => {
-    const k = getStatsKcalForPerson(h, statsPersonFilter);
-    kcalsByWeek.push({ label: h.label.split('–')[0].trim(), k });
-    Object.values(h.slots||{}).forEach(arr => {
-      (arr||[]).forEach(dish => { counts[dish.name]=(counts[dish.name]||0)+1; });
-    });
-  });
-
-  const maxK = Math.max(...kcalsByWeek.map(x=>x.k), 1);
-  const avgK = kcalsByWeek.reduce((a,b)=>a+b.k,0) / (kcalsByWeek.length||1);
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const maxC = sorted[0]?.[1]||1;
-
-  // Comparación entre personas
-  const profiles = window._profiles||[];
-  const personCompare = profiles.length > 0 ? `
-    <div class="sec-title" style="margin-top:4px">Comparativa</div>
-    <div class="stats-compare-grid">
-      <div class="stats-person-card">
-        <div class="stats-person-name">Todos</div>
-        <span class="stats-person-kcal">${avgK?Math.round(avgK/7):'—'}</span>
-        <div class="stats-person-sub">kcal/día prom</div>
-      </div>
-      ${profiles.map(p => {
-        const pKcals = history.slice(0,8).map(h => getStatsKcalForPerson(h, p.id));
-        const pAvg = pKcals.reduce((a,b)=>a+b,0)/(pKcals.length||1);
-        return `<div class="stats-person-card" style="border-color:${p.color}44">
-          <div class="stats-person-name" style="color:${p.color}">${p.name}</div>
-          <span class="stats-person-kcal" style="color:${p.color}">${pAvg?Math.round(pAvg/7):'—'}</span>
-          <div class="stats-person-sub">kcal/día prom</div>
-        </div>`;
-      }).join('')}
-    </div>` : '';
-
-  el.innerHTML = `
-    <div class="kpi-row">
-      <div class="kpi"><span class="kpi-val">${history.length}</span><span class="kpi-lbl">semanas</span></div>
-      <div class="kpi"><span class="kpi-val">${avgK?Math.round(avgK/7):'—'}</span><span class="kpi-lbl">kcal/día prom</span></div>
-    </div>
-    ${personCompare}
-    <div class="stats-chart-wrap">
-      <div class="stats-chart-title">Kcal totales por semana</div>
-      <div class="bar-chart">
-        ${kcalsByWeek.reverse().map(({label,k}) => `
-          <div class="bar-chart-row">
-            <div class="bar-chart-label">${label}</div>
-            <div class="bar-chart-track"><div class="bar-chart-fill" style="width:${k?Math.round(k/maxK*100):0}%"></div></div>
-            <div class="bar-chart-val">${k?Math.round(k/7)+' k/d':'—'}</div>
-          </div>`).join('')}
-      </div>
-    </div>
-    <div class="stats-chart-wrap">
-      <div class="stats-chart-title">Platos más frecuentes</div>
-      ${sorted.map(([name,count])=>`
-        <div class="bar-row" style="margin-bottom:8px">
-          <span class="bar-lbl" style="width:110px">🍽 ${name}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(count/maxC*100)}%"></div></div>
-          <span class="bar-cnt">${count}x</span>
-        </div>`).join('')}
-    </div>`;
 }
 window.renderStats = renderStats;
 
-// ── PICKER ──
+async function deleteHistEntry(id) {
+  // Borrar localmente y re-render inmediato
+  window._history = (window._history||[]).filter(h=>h.id!==id);
+  statsHistExpanded = null;
+  renderStats();
+  // Borrar en Firebase (deleteDoc viene del import inicial)
+  try { await deleteDoc(doc(db,'history',id)); } catch(e) { console.warn('deleteHistEntry:', e); }
+}
+window.deleteHistEntry = deleteHistEntry;
+
 function openPicker(dayIdx, meal, pid='all') {
   pickerTarget = { dayIdx, meal, pid };
   const profile = (window._profiles||[]).find(p=>p.id===pid);
@@ -2185,6 +2535,25 @@ async function commitPickDish(dishId, selections) {
   variantTarget = null;
 }
 window.commitPickDish = commitPickDish;
+
+async function addFreeTextDish() {
+  const input = document.getElementById('picker-free-text');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name || !pickerTarget) return;
+  const { dayIdx, meal, pid } = pickerTarget;
+  const key = sk(dayIdx, meal, pid);
+  const newWeek = { ...(window._week || {}) };
+  if (!newWeek[key]) newWeek[key] = [];
+  const freeEntry = { free: true, id: 'free_' + Date.now(), name };
+  newWeek[key].push(freeEntry);
+  await window._saveWeekToDb(newWeek);
+  input.value = '';
+  document.getElementById('picker-overlay').classList.remove('open');
+  pickerTarget = null;
+}
+window.addFreeTextDish = addFreeTextDish;
+
 
 function closeVariants(e) {
   if (e && e.target !== document.getElementById('variants-overlay')) return;
