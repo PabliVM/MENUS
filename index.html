@@ -1880,19 +1880,22 @@ function renderWeekGrid() {
   });
 
   // ── FILA TOTALES ──
-  html += `<div class="wg-meal-label" style="color:var(--accent);font-size:0.55rem">TOTAL</div>`;
+  html += '<div class="wg-meal-label" style="color:var(--accent);font-size:0.55rem">TOTAL</div>';
   for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
     const t = calcDayMacrosForEntity(dayIdx, gridPersonFilter);
-    const hasData = t.k > 0 || t.p > 0;
-    html += `<div style="padding:5px 6px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
-      ${hasData ? `
-        <div style="font-size:0.72rem;font-weight:700;color:var(--accent);text-align:center;margin-bottom:3px">${Math.round(t.k)}<span style="font-size:0.55rem;font-weight:400"> kcal</span></div>
-        <div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">
-          <span style="font-size:0.58rem;color:#6db4e8;font-weight:600">P${Math.round(t.p)}g</span>
-          <span style="font-size:0.58rem;color:#e8c06d;font-weight:600">C${Math.round(t.c)}g</span>
-          <span style="font-size:0.58rem;color:#e8836d;font-weight:600">G${Math.round(t.f)}g</span>
-        </div>` : `<div style="text-align:center;color:var(--border2);font-size:0.65rem">—</div>`}
-    </div>`;
+    let inner;
+    if (t.k > 0 || t.p > 0) {
+      inner = '<div style="font-size:0.72rem;font-weight:700;color:var(--accent);text-align:center;margin-bottom:3px">'
+        + Math.round(t.k) + '<span style="font-size:0.55rem;font-weight:400"> kcal</span></div>'
+        + '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">'
+        + '<span style="font-size:0.58rem;color:#6db4e8;font-weight:600">P' + Math.round(t.p) + 'g</span>'
+        + '<span style="font-size:0.58rem;color:#e8c06d;font-weight:600">C' + Math.round(t.c) + 'g</span>'
+        + '<span style="font-size:0.58rem;color:#e8836d;font-weight:600">G' + Math.round(t.f) + 'g</span>'
+        + '</div>';
+    } else {
+      inner = '<div style="text-align:center;color:var(--muted);font-size:0.65rem">—</div>';
+    }
+    html += '<div style="padding:5px 6px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">' + inner + '</div>';
   }
 
   grid.innerHTML = html;
