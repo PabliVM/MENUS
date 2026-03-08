@@ -564,6 +564,15 @@ header {
   <div class="sec-title">Estadísticas</div>
   <!-- Selector perfil -->
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="stats-person-filter"></div>
+  <!-- Navegador de semana -->
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--surface2);border-radius:12px;padding:8px 12px">
+    <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:1rem" onclick="navigateStatsWeek(-1)">‹</button>
+    <div style="flex:1;text-align:center">
+      <div id="stats-week-label" style="font-size:0.82rem;font-weight:700;color:var(--ink)">—</div>
+      <div id="stats-week-tag"   style="font-size:0.62rem;color:var(--muted)">—</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="padding:4px 10px;font-size:1rem" onclick="navigateStatsWeek(1)">›</button>
+  </div>
   <!-- Navegación vista -->
   <div style="display:flex;gap:6px;margin-bottom:14px">
     <button class="filter-chip active" id="stats-tab-day"     onclick="setStatsTab('day')">📅 Día</button>
@@ -1126,6 +1135,12 @@ function macroHtml(m, price) {
 function switchView(v) {
   window._activeView = v;
   if (v === 'compra') setTimeout(loadShopWeeks, 0);
+  if (v === 'stats') {
+    statsWeekOffset = 0;
+    _statsWeekData = window._week || {};
+    updateStatsWeekLabel();
+    renderStats();
+  }
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.getElementById(`view-${v}`).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -2535,6 +2550,8 @@ let statsPersonFilter = 'all';
 let statsTab = 'day';
 let statsDayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // hoy (0=lun)
 let statsHistExpanded = null;
+let statsWeekOffset = 0;          // semana que se muestra en stats (independiente de semana tab)
+let _statsWeekData = null;        // datos cargados para statsWeekOffset
 
 function setStatsTab(tab) {
   statsTab = tab;
@@ -2545,6 +2562,30 @@ function setStatsTab(tab) {
   renderStats();
 }
 window.setStatsTab = setStatsTab;
+
+function updateStatsWeekLabel() {
+  const mon = getWeekMonday(statsWeekOffset);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('es-ES', {day:'numeric', month:'short'});
+  const lbl = document.getElementById('stats-week-label');
+  const tag = document.getElementById('stats-week-tag');
+  if (lbl) lbl.textContent = `${fmt(mon)} – ${fmt(sun)}`;
+  if (tag) tag.textContent = statsWeekOffset === 0 ? 'Semana actual'
+    : statsWeekOffset < 0 ? `Hace ${Math.abs(statsWeekOffset)} semana${Math.abs(statsWeekOffset)>1?'s':''}`
+    : `En ${statsWeekOffset} semana${statsWeekOffset>1?'s':''}`;
+}
+window.updateStatsWeekLabel = updateStatsWeekLabel;
+
+async function navigateStatsWeek(dir) {
+  statsWeekOffset += dir;
+  updateStatsWeekLabel();
+  // Cargar datos de esa semana
+  const key = isoMonday(statsWeekOffset);
+  const snap = await getDoc(doc(db, 'weeks', key));
+  _statsWeekData = snap.exists() ? snap.data() : {};
+  renderStats();
+}
+window.navigateStatsWeek = navigateStatsWeek;
 
 function setStatsDayIdx(i) {
   statsDayIdx = i;
@@ -2566,10 +2607,11 @@ function renderStatsPersonFilter() {
 }
 
 // ── Macros de la semana actual (window._week) para un perfil ──
-function getMacrosFromWeek(pid) {
-  // Devuelve array de 7 elementos por día
+function getMacrosFromWeek(pid, weekData) {
+  // weekData: datos de la semana a analizar (por defecto _statsWeekData o _week)
+  const data = weekData || _statsWeekData || window._week || {};
   const days = Array.from({length:7}, () => ({k:0,p:0,c:0,f:0,salt:0,fiber:0,count:0}));
-  if (!window._week) return days;
+  if (!data) return days;
 
   // Construir lista de slotIds relevantes:
   // - 'all' siempre
@@ -2606,7 +2648,7 @@ function getMacrosFromWeek(pid) {
       // (ej: plato asignado a 'Todos' y a 'Adultos' que incluye a la persona)
       const countedDishes = new Set();
       slotIds.forEach(slotPid => {
-        (window._week?.[sk(d,m,slotPid)]||[]).forEach(e => {
+        (data?.[sk(d,m,slotPid)]||[]).forEach(e => {
           if (e?.free) {
             // Platos libres sí suman macros si las tienen
             const mac = e.macros || {};
@@ -2713,10 +2755,12 @@ function renderStats() {
   const el = document.getElementById('stats-content');
   if (!el) return;
 
+  updateStatsWeekLabel();
+
   if (statsTab === 'day') {
     // ── VISTA DÍA ──
     const days = getMacrosFromWeek(statsPersonFilter);
-    const mon = getWeekMonday(window._weekOffset || 0);
+    const mon = getWeekMonday(statsWeekOffset);
     const dayChips = DAYS.map((day, i) => {
       const date = new Date(mon); date.setDate(mon.getDate() + i);
       const num = date.getDate();
