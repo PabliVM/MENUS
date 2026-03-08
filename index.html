@@ -757,9 +757,11 @@ header {
       </div>
       <div class="field"><label>Nombre del plato</label><input id="f-name" type="text" placeholder="Ej: Pollo al horno con verduras" maxlength="50"/></div>
       <div class="field" style="max-width:160px"><label>🍽 Raciones que salen</label><input id="f-servings" type="number" min="1" max="20" placeholder="Ej: 4" style="text-align:center"/></div>
-      <div style="margin-bottom:8px; font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
-      <div id="ing-list"></div>
-      <button class="btn btn-ghost btn-sm" onclick="addIngRow()" style="margin-bottom:12px;width:100%">+ Ingrediente</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:0.6rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Ingredientes</div>
+        <button class="btn btn-ghost btn-sm" onclick="addDishPart()" style="font-size:0.65rem;padding:3px 8px">+ Parte</button>
+      </div>
+      <div id="parts-list"></div>
       <div class="macro-preview" id="macro-preview">
         <span style="font-size:0.7rem;color:var(--muted)">Identifica ingredientes con IA para calcular macros</span>
       </div>
@@ -1001,7 +1003,9 @@ const MEALS = [
   { id:'dinner',    label:'Cena',     icon:'🌙' },
 ];
 const UNIT_OPTS = ['g','ml','unidad','taza','cdta','cda'];
-let ingRows = [];
+let ingRows = []; // compatibility alias → dishParts[0].rows
+let dishParts = [{ id: 'part_default', name: '', rows: [] }];
+function getIngRows() { return dishParts.flatMap(p => p.rows); }
 let editId  = null;
 let selDay  = 0;
 let selPerson = 'all';
@@ -1105,18 +1109,20 @@ function showBibSub(sub) {
 window.showBibSub = showBibSub;
 
 // ── PLATOS ──
-function addIngRow(val) {
+function addIngRow(val, partId) {
   const id = (Date.now()+Math.random()).toString();
   const row = { id, name:val?.name||'', qty:val?.qty||'', unit:val?.unit||'g', macros100:val?.macros100||null };
-  ingRows.push(row);
-  // Añadir solo el nuevo bloque al DOM sin reconstruir los existentes
-  const el = document.getElementById('ing-list');
+  const part = dishParts.find(p=>p.id===(partId||dishParts[0].id)) || dishParts[0];
+  part.rows.push(row);
+  ingRows = dishParts[0].rows; // mantener alias
+  // Añadir el bloque al DOM de la parte correcta
+  const el = document.getElementById('ing-list-' + part.id);
   if (el) {
     const div = document.createElement('div');
-    div.innerHTML = ingBlockHtml(row, ingRows.length - 1);
+    div.innerHTML = ingBlockHtml(row, part.rows.length - 1);
     el.appendChild(div.firstElementChild);
   } else {
-    renderIngRows();
+    renderPartsList();
   }
   updateMacroPreview();
 }
@@ -1154,9 +1160,30 @@ function ingBlockHtml(r, i) {
   </div>`;
 }
 
-function renderIngRows() {
-  const el = document.getElementById('ing-list');
-  el.innerHTML = ingRows.map((r,i) => ingBlockHtml(r,i)).join('');
+function renderIngRows() { renderPartsList(); } // compatibilidad
+
+function renderPartsList() {
+  const container = document.getElementById('parts-list');
+  if (!container) return;
+  const multiPart = dishParts.length > 1 || dishParts[0]?.name;
+  container.innerHTML = dishParts.map((part, pi) => {
+    const header = multiPart ? `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <input type="text" value="${part.name}" placeholder="Nombre de la parte (ej: Base, Salsa…)"
+          style="flex:1;padding:5px 10px;background:var(--surface);border:1px solid var(--border2);
+          border-radius:8px;color:var(--ink);font-family:inherit;font-size:0.8rem"
+          oninput="dishParts[${pi}].name=this.value;updateMacroPreview()"/>
+        ${dishParts.length > 1 ? `<button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem"
+          onclick="removeDishPart('${part.id}')">✕</button>` : ''}
+      </div>` : '';
+    const rows = part.rows.map((r,i) => ingBlockHtml(r,i)).join('');
+    return `<div style="${multiPart ? 'background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--border)' : ''}">
+      ${header}
+      <div id="ing-list-${part.id}">${rows}</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:4px;margin-bottom:${multiPart?4:12}px"
+        onclick="addIngRow(null,'${part.id}')">+ Ingrediente</button>
+    </div>`;
+  }).join('');
   updateMacroPreview();
 }
 
@@ -1215,9 +1242,10 @@ function delIng(id) { ingRows = ingRows.filter(r=>r.id!=id); renderIngRows(); }
 window.delIng = delIng;
 
 function updateMacroPreview() {
-  const total = calcMacros(ingRows);
+  const allRows = getIngRows();
+  const total = calcMacros(allRows);
   const el = document.getElementById('macro-preview');
-  const hasData = ingRows.some(r=>r.macros100);
+  const hasData = allRows.some(r=>r.macros100);
   const servings = Math.max(1, parseInt(document.getElementById('f-servings')?.value)||1);
   const perRacion = {
     p: Math.round(total.p/servings),
@@ -1498,7 +1526,7 @@ async function saveDish() {
   const prep  = document.getElementById('f-prep').value.trim();
   const url   = document.getElementById('f-url').value.trim();
   const servings = Math.max(1, parseInt(document.getElementById('f-servings').value)||1);
-  const ings  = ingRows.filter(r=>r.name.trim());
+  const ings  = getIngRows().filter(r=>r.name.trim());
   const totalMacros = calcMacros(ings);
   // Macros por ración
   const macros = totalMacros.k
@@ -1507,7 +1535,13 @@ async function saveDish() {
     : null;
   const id = editId || Date.now().toString();
 
-  const dish = { id, name, prep, url, servings, ingredients: ings, macros };
+  // Guardar partes si hay más de una o la parte tiene nombre
+  const hasRealParts = dishParts.length > 1 || dishParts[0]?.name;
+  const partsToSave = hasRealParts ? dishParts.map(p => ({
+    id: p.id, name: p.name,
+    rows: p.rows.filter(r=>r.name.trim())
+  })) : null;
+  const dish = { id, name, prep, url, servings, ingredients: ings, macros, ...(partsToSave ? {parts: partsToSave} : {}) };
   await window._saveDishToDb(dish);
 
   if (editId) { cancelEdit(); toast('Plato actualizado'); showRecetasLanding(); }
@@ -1516,7 +1550,7 @@ async function saveDish() {
     document.getElementById('f-prep').value='';
     document.getElementById('f-url').value='';
     document.getElementById('f-servings').value='';
-    ingRows=[]; renderIngRows();
+    dishParts=[{id:'part_default',name:'',rows:[]}]; ingRows=dishParts[0].rows; renderPartsList();
     toast('✅ Plato guardado — consulta tus recetas para verlo');
   }
 }
@@ -1529,8 +1563,17 @@ function editDish(id) {
   document.getElementById('f-prep').value = d.prep||'';
   document.getElementById('f-url').value  = d.url||'';
   document.getElementById('f-servings').value = d.servings||1;
-  ingRows = (d.ingredients||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}));
-  renderIngRows();
+  // Cargar partes si existen, compatibilidad con recetas antiguas (sin partes)
+  if (d.parts && d.parts.length) {
+    dishParts = d.parts.map(p => ({
+      ...p,
+      rows: (p.rows||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}))
+    }));
+  } else {
+    dishParts = [{id:'part_default',name:'',rows:(d.ingredients||[]).map(i=>({...i,id:(Date.now()+Math.random()).toString()}))}];
+  }
+  ingRows = dishParts[0].rows;
+  renderPartsList();
   document.getElementById('form-mode-label').textContent = 'Editar plato';
   document.getElementById('cancel-edit-btn').style.display = 'inline-flex';
   document.getElementById('save-dish-btn').textContent = 'Actualizar plato';
@@ -1544,7 +1587,7 @@ function cancelEdit() {
   document.getElementById('f-prep').value='';
   document.getElementById('f-url').value='';
   document.getElementById('f-servings').value='';
-  ingRows=[]; renderIngRows();
+  dishParts=[{id:'part_default',name:'',rows:[]}]; ingRows=dishParts[0].rows; renderPartsList();
   document.getElementById('form-mode-label').textContent='Nuevo plato';
   document.getElementById('cancel-edit-btn').style.display='none';
   document.getElementById('save-dish-btn').textContent='Guardar plato';
@@ -2407,12 +2450,45 @@ function openPicker(dayIdx, meal, pid='all') {
   const list = document.getElementById('picker-list');
   const dishes = window._dishes || [];
 
-  list.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
-    <input id="picker-free-text" type="text" placeholder="✏️ Añadir libremente…"
-      style="flex:1;padding:7px 10px;background:var(--surface2);border:1px solid var(--border2);
-      border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.8rem"
-      onkeydown="if(event.key==='Enter')addFreeTextDish()"/>
-    <button class="btn btn-accent btn-sm" style="white-space:nowrap;padding:7px 12px" onclick="addFreeTextDish()">+</button>
+  list.innerHTML = `<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:10px">
+    <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">✏️ Añadir libremente</div>
+    <input id="picker-free-text" type="text" placeholder="Nombre del plato…"
+      style="width:100%;padding:7px 10px;background:var(--surface);border:1px solid var(--border2);
+      border-radius:8px;color:var(--ink);font-family:inherit;font-size:0.82rem;box-sizing:border-box;margin-bottom:8px"
+      onkeydown="if(event.key==='Enter')document.getElementById('picker-free-kcal').focus()"/>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:8px">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <label style="font-size:0.55rem;color:var(--accent);text-align:center">kcal</label>
+        <input id="picker-free-kcal" type="number" placeholder="0" min="0"
+          style="padding:5px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+          color:var(--ink);font-family:inherit;font-size:0.78rem;text-align:center;width:100%"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <label style="font-size:0.55rem;color:#6db4e8;text-align:center">prot g</label>
+        <input id="picker-free-p" type="number" placeholder="—" min="0"
+          style="padding:5px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+          color:var(--ink);font-family:inherit;font-size:0.78rem;text-align:center;width:100%"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <label style="font-size:0.55rem;color:#e8c06d;text-align:center">carb g</label>
+        <input id="picker-free-c" type="number" placeholder="—" min="0"
+          style="padding:5px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+          color:var(--ink);font-family:inherit;font-size:0.78rem;text-align:center;width:100%"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <label style="font-size:0.55rem;color:#e8836d;text-align:center">gras g</label>
+        <input id="picker-free-f" type="number" placeholder="—" min="0"
+          style="padding:5px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+          color:var(--ink);font-family:inherit;font-size:0.78rem;text-align:center;width:100%"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <label style="font-size:0.55rem;color:var(--muted);text-align:center">sal g</label>
+        <input id="picker-free-salt" type="number" placeholder="—" min="0" step="0.1"
+          style="padding:5px 4px;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+          color:var(--ink);font-family:inherit;font-size:0.78rem;text-align:center;width:100%"/>
+      </div>
+    </div>
+    <button class="btn btn-accent" style="width:100%;padding:8px" onclick="addFreeTextDish()">+ Añadir</button>
   </div>
   <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Mis recetas</div>
   ${!dishes.length
@@ -2537,18 +2613,28 @@ async function commitPickDish(dishId, selections) {
 window.commitPickDish = commitPickDish;
 
 async function addFreeTextDish() {
-  const input = document.getElementById('picker-free-text');
-  if (!input) return;
-  const name = input.value.trim();
+  const name = document.getElementById('picker-free-text')?.value.trim();
   if (!name || !pickerTarget) return;
+  const kcal = parseFloat(document.getElementById('picker-free-kcal')?.value) || 0;
+  const p    = parseFloat(document.getElementById('picker-free-p')?.value)    || null;
+  const c    = parseFloat(document.getElementById('picker-free-c')?.value)    || null;
+  const f    = parseFloat(document.getElementById('picker-free-f')?.value)    || null;
+  const salt = parseFloat(document.getElementById('picker-free-salt')?.value) || null;
+  const macros = {};
+  if (kcal) macros.k = kcal;
+  if (p !== null) macros.p = p;
+  if (c !== null) macros.c = c;
+  if (f !== null) macros.f = f;
+  if (salt !== null) macros.salt = salt;
   const { dayIdx, meal, pid } = pickerTarget;
   const key = sk(dayIdx, meal, pid);
   const newWeek = { ...(window._week || {}) };
   if (!newWeek[key]) newWeek[key] = [];
-  const freeEntry = { free: true, id: 'free_' + Date.now(), name };
+  const freeEntry = { free: true, id: 'free_' + Date.now(), name, macros };
   newWeek[key].push(freeEntry);
   await window._saveWeekToDb(newWeek);
-  input.value = '';
+  document.getElementById('picker-free-text').value = '';
+  document.getElementById('picker-free-kcal').value = '';
   document.getElementById('picker-overlay').classList.remove('open');
   pickerTarget = null;
 }
@@ -3138,7 +3224,7 @@ document.addEventListener('click', e => {
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
-renderIngRows();
+renderPartsList();
 // Arrancar en Recetas
 switchView('recetas');
 </script>
