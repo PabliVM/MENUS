@@ -188,9 +188,9 @@ header {
 .bar-cnt { font-size: 0.68rem; color: var(--muted); width: 28px; text-align: right; }
 
 /* MODALS */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: flex-end; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 300; align-items: flex-end; padding-bottom: 72px; }
 .overlay.open { display: flex; }
-.sheet { background: #1a1815; width: 100%; border-radius: 18px 18px 0 0; padding: 18px 18px 46px; max-height: 80vh; overflow-y: auto; animation: up 0.22s ease; }
+.sheet { background: #1a1815; width: 100%; border-radius: 18px 18px 0 0; padding: 18px 18px 28px; max-height: 75dvh; max-height: 75vh; overflow-y: auto; animation: up 0.22s ease; }
 @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .sheet-handle { width: 34px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 16px; }
 .sheet-title { font-family: 'Fraunces', serif; font-size: 1.05rem; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
@@ -864,6 +864,7 @@ window._saveProfiles = async (list) => {
   await setDoc(doc(db, 'state', 'profiles'), { list });
 };
 window._profiles = [];
+window._week = {};
 
 setSyncState('syncing', 'conectando…');
 startListeners();
@@ -1483,11 +1484,12 @@ window.renderDishList = renderDishList;
 
 // ── SEMANA ──
 function calcWeekTotals() {
+  if (!window._week) return { k:0, pr:0, unique:0 };
   let k=0, pr=0, ids=new Set();
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
     const pids = ['all', ...(window._profiles||[]).map(p=>p.id)];
     pids.forEach(pid => {
-      (window._week[sk(d,m,pid)]||[]).forEach(entry => {
+      (window._week?.[sk(d,m,pid)]||[]).forEach(entry => {
         const dish=gd(slotId(entry)); if(!dish) return;
         ids.add(slotId(entry)); k+=(dish.macros?.k||0); pr+=(dish.macros?.p||0);
       });
@@ -1568,7 +1570,7 @@ function renderDayScroll() {
     const pids = selPerson==='all'
       ? ['all',...(window._profiles||[]).map(p=>p.id)]
       : ['all', selPerson];
-    const has = MEALS.some(({id:m}) => pids.some(pid=>(window._week[sk(i,m,pid)]||[]).length>0));
+    const has = window._week && MEALS.some(({id:m}) => pids.some(pid=>(window._week?.[sk(i,m,pid)]||[]).length>0));
     return `<div class="day-chip ${i===selDay?'active':''}" onclick="selDay=${i};renderSemana()">
       ${day} <span style="font-weight:400;opacity:0.75">${dayNum}</span>${has?'<span class="dot"></span>':''}
     </div>`;
@@ -1580,7 +1582,7 @@ function renderMeals() {
   const container = document.getElementById('meals-container');
 
   container.innerHTML = MEALS.map(({id:meal, label, icon}) => {
-    const sharedEntries = window._week[sk(selDay, meal, 'all')] || [];
+    const sharedEntries = (window._week?.[sk(selDay, meal, 'all')]) || [];
 
     const buildDishRows = (entries, profileId) => entries.map(e => {
       if (e?.free) return `<div class="meal-dish">
@@ -1605,7 +1607,7 @@ function renderMeals() {
         `<button class="meal-add-btn" style="margin-top:4px" onclick="openPicker(${selDay},'${meal}','all')">+ Añadir</button>`;
     } else {
       sectionsHTML = profiles.map((profile, i) => {
-        const entries = window._week[sk(selDay, meal, profile.id)] || [];
+        const entries = (window._week?.[sk(selDay, meal, profile.id)]) || [];
         const allEntries = i === 0 ? [...sharedEntries, ...entries] : entries;
         const dishRows = buildDishRows(allEntries, profile.id);
         return `<div class="profile-meal-section" ${i===0?'':'style="border-top:1px dashed var(--border2)"'}>
@@ -1646,7 +1648,7 @@ async function saveWeek() {
     const pids=['all',...(window._profiles||[]).map(p=>p.id)];
     pids.forEach(pid=>{
       const key=sk(d,m,pid);
-      slots[key]=(window._week[key]||[]).map(entry=>{
+      slots[key]=(window._week?.[key]||[]).map(entry=>{
         const id=slotId(entry); const dish=gd(id);
         return dish?{id:dish.id,name:dish.name,macros:dish.macros,ingredients:dish.ingredients}:null;
       }).filter(Boolean);
@@ -1662,7 +1664,8 @@ window.saveWeek = saveWeek;
 function openPersonConfig() {
   renderProfileListConfig();
   document.getElementById('person-overlay').classList.add('open');
-  setTimeout(()=>document.getElementById('new-person-name')?.focus(), 200);
+  // NO hacer focus automático para evitar que el teclado tape el panel al abrirlo
+  // El usuario puede pulsar el input cuando quiera
 }
 window.openPersonConfig = openPersonConfig;
 
@@ -1707,6 +1710,17 @@ function closePersonConfig(e) {
 }
 window.closePersonConfig = closePersonConfig;
 
+// Subir los overlays cuando el teclado virtual aparece (iOS Safari visualViewport)
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    const overlays = document.querySelectorAll('.overlay.open .sheet');
+    const offset = window.innerHeight - window.visualViewport.height;
+    overlays.forEach(sheet => {
+      sheet.style.transform = offset > 50 ? `translateY(-${Math.min(offset, 260)}px)` : '';
+    });
+  });
+}
+
 // ── COMPRA ──
 const CAT_ICONS = {
   'Pollo / Ave':'🍗','Carne':'🥩','Pescado':'🐟','Fruta':'🍎','Verdura':'🥦','Lácteos':'🥛',
@@ -1741,7 +1755,7 @@ function buildShoppingList() {
   const pids = ['all', ...(window._profiles||[]).map(p=>p.id)];
   for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
     pids.forEach(pid => {
-      (window._week[sk(d,m,pid)]||[]).forEach(entry => {
+      (window._week?.[sk(d,m,pid)]||[]).forEach(entry => {
         const dish=gd(slotId(entry)); if(!dish) return;
         (dish.ingredients||[]).forEach(ing => {
           if(!ing.name.trim()) return;
@@ -2038,22 +2052,19 @@ function openPicker(dayIdx, meal, pid='all') {
     `${DAYS[dayIdx]} · ${mealObj?.icon||''} ${mealObj?.label||meal}${profile?' · '+profile.name:''}`;
 
   const key = sk(dayIdx, meal, pid);
-  const assigned = (window._week[key]||[]).map(e => typeof e==='string'?e:(e.id||''));
+  const assigned = (window._week?.[key]||[]).map(e => typeof e==='string'?e:(e.id||''));
 
   const list = document.getElementById('picker-list');
   const dishes = window._dishes || [];
 
-  list.innerHTML = `<div style="margin-bottom:14px">
-    <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Añadir libremente</div>
-    <div style="display:flex;gap:8px">
-      <input id="picker-free-text" type="text" placeholder="Ej: Tortilla francesa…"
-        style="flex:1;padding:9px 12px;background:var(--surface2);border:1px solid var(--border2);
-        border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.82rem"
-        onkeydown="if(event.key==='Enter')addFreeTextDish()"/>
-      <button class="btn btn-accent btn-sm" onclick="addFreeTextDish()">+ Añadir</button>
-    </div>
+  list.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+    <input id="picker-free-text" type="text" placeholder="✏️ Añadir libremente…"
+      style="flex:1;padding:7px 10px;background:var(--surface2);border:1px solid var(--border2);
+      border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.8rem"
+      onkeydown="if(event.key==='Enter')addFreeTextDish()"/>
+    <button class="btn btn-accent btn-sm" style="white-space:nowrap;padding:7px 12px" onclick="addFreeTextDish()">+</button>
   </div>
-  <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Mis recetas</div>
+  <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Mis recetas</div>
   ${!dishes.length
     ? '<div class="empty" style="font-size:0.8rem">Crea platos primero en Recetas</div>'
     : dishes.map(d => {
@@ -2424,17 +2435,16 @@ function nsColor(key, val) {
 }
 
 function nsBadgeCompact(data) {
-  const keys = ['k','p','c','sugar','f','sat','fiber','salt'];
+  // Mostrar todos los nutrientes que tienen valor — de 3 a 7 indicadores
+  const keys = ['p','c','f','sat','sugar','salt','fiber'];
   const pills = [];
   keys.forEach(key => {
     const val = data?.[key];
-    if (val === undefined || val === null || !val) return;
+    if (!val || val === 0) return; // omitir si vacío o desconocido
     const color = nsColor(key, val);
     if (!color) return;
     const t = NS_THRESHOLDS[key];
-    if (color === 'red' || key === 'p') {
-      pills.push(`<span class="ns-pill ${color}"><span class="ns-dot"></span>${t.label}</span>`);
-    }
+    pills.push(`<span class="ns-pill ${color}"><span class="ns-dot"></span>${t.label}</span>`);
   });
   if (!pills.length) return '';
   return `<div class="ns-bar">${pills.join('')}</div>`;
