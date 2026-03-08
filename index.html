@@ -1863,26 +1863,23 @@ function toggleCellDropdown(key, dayIdx, meal, btn) {
     return;
   }
   // Posicionar junto al botón
-  const trigger = btn || event?.target;
-  if (trigger) {
-    const rect = trigger.getBoundingClientRect();
-    const dropH = 200; // altura estimada del dropdown
+  if (btn) {
+    const rect = btn.getBoundingClientRect();
+    // Mostrar temporalmente para medir altura real
+    el.style.visibility = 'hidden';
+    el.style.display = 'block';
+    const elH = el.offsetHeight;
+    el.style.visibility = '';
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
-    el.style.display = 'block';
-    const elH = el.offsetHeight || dropH;
     if (spaceBelow >= elH || spaceBelow >= spaceAbove) {
-      // Mostrar hacia abajo
-      el.style.top  = (rect.bottom + 4) + 'px';
-      el.style.bottom = 'auto';
+      el.style.top = (rect.bottom + 4) + 'px';
     } else {
-      // Mostrar hacia arriba
-      el.style.top  = (rect.top - elH - 4) + 'px';
-      el.style.bottom = 'auto';
+      el.style.top = (rect.top - elH - 4) + 'px';
     }
-    // Horizontal: alinear a la izquierda del botón, sin salirse de pantalla
     let left = rect.left;
-    if (left + 140 > window.innerWidth) left = window.innerWidth - 148;
+    if (left + 150 > window.innerWidth) left = window.innerWidth - 155;
+    if (left < 4) left = 4;
     el.style.left = left + 'px';
   } else {
     el.style.display = 'block';
