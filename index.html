@@ -1744,9 +1744,9 @@ function calcWeekTotals() {
 }
 
 function renderSemana() {
-  try { renderWeekBar(); }             catch(e) { console.warn('renderWeekBar:', e); }
-  try { renderGridPersonFilter(); }    catch(e) { console.warn('renderGridPersonFilter:', e); }
-  try { renderWeekGrid(); }            catch(e) { console.warn('renderWeekGrid:', e); }
+  renderWeekBar();
+  renderGridPersonFilter();
+  renderWeekGrid();
 }
 window.renderSemana = renderSemana;
 
@@ -1770,12 +1770,22 @@ function renderGridPersonFilter() {
   if (!el) return;
   const persons = window._persons || [];
   const all = [{id:'all', name:'Todos', color:'var(--accent)'},...persons];
-  el.innerHTML = all.map(p => {
+  el.innerHTML = '';
+  all.forEach(p => {
     const active = gridPersonFilter === p.id;
-    return `<button class="filter-chip ${active?'active':''}"
-      style="font-size:0.65rem;padding:3px 10px;${active?`background:${p.color}22;border-color:${p.color};color:${p.color}`:''}"
-      onclick="gridPersonFilter='${p.id}';renderGridPersonFilter();renderWeekGrid()">${p.name}</button>`;
-  }).join('');
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (active ? ' active' : '');
+    btn.style.fontSize = '0.65rem';
+    btn.style.padding = '3px 10px';
+    if (active) {
+      btn.style.background = p.color + '22';
+      btn.style.borderColor = p.color;
+      btn.style.color = p.color;
+    }
+    btn.textContent = p.name;
+    btn.onclick = () => { gridPersonFilter = p.id; renderGridPersonFilter(); renderWeekGrid(); };
+    el.appendChild(btn);
+  });
 }
 window.renderGridPersonFilter = renderGridPersonFilter;
 
@@ -1825,6 +1835,9 @@ function calcDayMacrosForEntity(dayIdx, entityId) {
 }
 
 function renderWeekGrid() {
+  const profiles = window._profiles || [];
+  const persons  = window._persons  || [];
+  const groups   = window._groups   || [];
   const mon = getWeekMonday(window._weekOffset || 0);
   const today = new Date();
   today.setHours(0,0,0,0);
