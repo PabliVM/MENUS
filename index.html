@@ -1272,7 +1272,7 @@ function renderPartsList() {
 
 // Actualiza SOLO el bloque del ingrediente afectado, preservando otros inputs
 function updateIngBlock(id) {
-  const idx = ingRows.findIndex(r=>r.id==id);
+  const idx = getIngRows().findIndex(r=>r.id==id);
   if (idx < 0) return;
   const r = ingRows[idx];
   const existing = document.getElementById(`ib-${r.id}`);
@@ -1309,14 +1309,14 @@ function updateIngBlock(id) {
 }
 
 function updateIngName(id, val) {
-  const r = ingRows.find(r=>r.id==id); if (!r) return;
+  const r = getIngRows().find(r=>r.id==id); if (!r) return;
   r.name = val; r.macros100 = null; r.confirmed = false;
   updateMacroPreview();
 }
 window.updateIngName = updateIngName;
 
 function updateIng(id, field, val) {
-  const r = ingRows.find(r=>r.id==id); if (!r) return;
+  const r = getIngRows().find(r=>r.id==id); if (!r) return;
   r[field] = val; updateMacroPreview();
 }
 window.updateIng = updateIng;
@@ -1533,7 +1533,7 @@ function confirmCatKey(key) {
 window.confirmCatKey = confirmCatKey;
 
 function confirmCat(item) {
-  const r = ingRows.find(r=>r.id==catTarget); if (!r) return;
+  const r = getIngRows().find(r=>r.id==catTarget); if (!r) return;
   r.macros100 = { p:item.p, c:item.c, f:item.f, k:item.k };
   r.confirmed = true;
   // Actualizar siempre el nombre con el del picker (nombre canónico)
