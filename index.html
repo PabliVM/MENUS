@@ -505,6 +505,8 @@ header {
   </div>
   <div id="week-selector-dropdown" style="display:none"></div>
   <div id="week-bar" style="display:none"></div>
+  <!-- Selector persona para macros -->
+  <div id="grid-person-filter" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;padding-right:12px"></div>
   <!-- GRID SEMANA -->
   <div id="week-grid-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
     <div id="week-grid"></div>
@@ -1080,6 +1082,7 @@ function getIngRows() { return dishParts.flatMap(p => p.rows); }
 let editId  = null;
 let selDay  = 0;
 let selPerson = 'all';
+let gridPersonFilter = 'all'; // persona seleccionada para macros del grid
 let pickerTarget = null;
 let aiTarget = null;
 window._activeView = 'platos';
@@ -1741,8 +1744,9 @@ function calcWeekTotals() {
 }
 
 function renderSemana() {
-  try { renderWeekBar(); }    catch(e) { console.warn('renderWeekBar:', e); }
-  try { renderWeekGrid(); }   catch(e) { console.warn('renderWeekGrid:', e); }
+  try { renderWeekBar(); }             catch(e) { console.warn('renderWeekBar:', e); }
+  try { renderGridPersonFilter(); }    catch(e) { console.warn('renderGridPersonFilter:', e); }
+  try { renderWeekGrid(); }            catch(e) { console.warn('renderWeekGrid:', e); }
 }
 window.renderSemana = renderSemana;
 
@@ -1760,6 +1764,65 @@ function renderPersonTabs() {
 }
 
 
+
+function renderGridPersonFilter() {
+  const el = document.getElementById('grid-person-filter');
+  if (!el) return;
+  const persons = window._persons || [];
+  const all = [{id:'all', name:'Todos', color:'var(--accent)'},...persons];
+  el.innerHTML = all.map(p => {
+    const active = gridPersonFilter === p.id;
+    return `<button class="filter-chip ${active?'active':''}"
+      style="font-size:0.65rem;padding:3px 10px;${active?`background:${p.color}22;border-color:${p.color};color:${p.color}`:''}"
+      onclick="gridPersonFilter='${p.id}';renderGridPersonFilter();renderWeekGrid()">${p.name}</button>`;
+  }).join('');
+}
+window.renderGridPersonFilter = renderGridPersonFilter;
+
+// Calcula macros totales de un día para una entidad (persona, grupo o 'all')
+function calcDayMacrosForEntity(dayIdx, entityId) {
+  const data = window._week || {};
+  const persons  = window._persons || [];
+  const groups   = window._groups  || [];
+  const allEntities = [...persons,...groups];
+
+  // slotIds relevantes según entityId
+  let slotIds;
+  if (entityId === 'all') {
+    slotIds = ['all',...persons.map(p=>p.id),...groups.map(g=>g.id)];
+  } else {
+    const isPerson = persons.some(p=>p.id===entityId);
+    if (isPerson) {
+      const myGroups = groups.filter(g=>(g.members||[]).includes(entityId)).map(g=>g.id);
+      slotIds = ['all', entityId, ...myGroups];
+    } else {
+      slotIds = ['all', entityId];
+    }
+  }
+
+  const totals = {k:0, p:0, c:0, f:0};
+  const counted = new Set();
+  MEALS.forEach(({id:m}) => {
+    slotIds.forEach(sid => {
+      (data[sk(dayIdx,m,sid)]||[]).forEach(e => {
+        if (e?.free) {
+          const mac = e.macros||{};
+          totals.k += mac.k||0; totals.p += mac.p||0;
+          totals.c += mac.c||0; totals.f += mac.f||0;
+          return;
+        }
+        const id = typeof e==='string'?e:e.id;
+        if (counted.has(id)) return;
+        counted.add(id);
+        const dish = gd(id); if(!dish) return;
+        const mac = dish.macros||{};
+        totals.k += mac.k||0; totals.p += mac.p||0;
+        totals.c += mac.c||0; totals.f += mac.f||0;
+      });
+    });
+  });
+  return totals;
+}
 
 function renderWeekGrid() {
   const profiles = window._profiles || [];
@@ -1807,6 +1870,22 @@ function renderWeekGrid() {
       html += buildWgCell(dayIdx, meal, profiles);
     }
   });
+
+  // ── FILA TOTALES ──
+  html += `<div class="wg-meal-label" style="color:var(--accent);font-size:0.55rem">TOTAL</div>`;
+  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+    const t = calcDayMacrosForEntity(dayIdx, gridPersonFilter);
+    const hasData = t.k > 0 || t.p > 0;
+    html += `<div style="padding:5px 6px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+      ${hasData ? `
+        <div style="font-size:0.72rem;font-weight:700;color:var(--accent);text-align:center;margin-bottom:3px">${Math.round(t.k)}<span style="font-size:0.55rem;font-weight:400"> kcal</span></div>
+        <div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">
+          <span style="font-size:0.58rem;color:#6db4e8;font-weight:600">P${Math.round(t.p)}g</span>
+          <span style="font-size:0.58rem;color:#e8c06d;font-weight:600">C${Math.round(t.c)}g</span>
+          <span style="font-size:0.58rem;color:#e8836d;font-weight:600">G${Math.round(t.f)}g</span>
+        </div>` : `<div style="text-align:center;color:var(--border2);font-size:0.65rem">—</div>`}
+    </div>`;
+  }
 
   grid.innerHTML = html;
 }
@@ -1954,16 +2033,25 @@ function updateWeekSelectorLabel() {
   const isCurrentWeek = window._weekOffset === 0;
   const label = document.getElementById('week-selector-label');
   if (label) {
-    label.innerHTML = `${fmt(mon)} – ${fmt(sun)}<span>${isCurrentWeek ? 'Semana actual' : (window._weekOffset < 0 ? 'Semana pasada' : 'Próxima semana')}</span>`;
+    const off = window._weekOffset;
+    const tag = off === 0 ? 'Semana actual'
+      : off === -1 ? 'Semana pasada'
+      : off < 0 ? `Hace ${Math.abs(off)} semanas`
+      : off === 1 ? 'Próxima semana'
+      : `En ${off} semanas`;
+    label.innerHTML = `${fmt(mon)} – ${fmt(sun)}<span>${tag}</span>`;
   }
 }
 
 function navigateWeek(dir) {
   window._weekOffset += dir;
   updateWeekSelectorLabel();
-  renderDayScroll();
-  renderMeals();
-  renderWeekBar();
+  const key = isoMonday(window._weekOffset);
+  window._currentWeekKey = key;
+  getDoc(doc(db, 'weeks', key)).then(snap => {
+    window._week = snap.exists() ? snap.data() : {};
+    renderSemana();
+  });
 }
 window.navigateWeek = navigateWeek;
 
