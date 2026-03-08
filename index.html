@@ -2088,9 +2088,15 @@ function navigateWeek(dir) {
   updateWeekSelectorLabel();
   const key = isoMonday(window._weekOffset);
   window._currentWeekKey = key;
-  // Reset scroll para que el header de días sea visible inmediatamente
+  // Limpiar grid inmediatamente para que no se vean datos de la semana anterior
   const wrap = document.getElementById('week-grid-wrap');
   if (wrap) wrap.scrollLeft = 0;
+  const grid = document.getElementById('week-grid');
+  if (grid) grid.innerHTML = '';
+  // Renderizar header de días ya (sin esperar Firebase)
+  window._week = {};
+  renderSemana();
+  // Luego cargar datos reales
   getDoc(doc(db, 'weeks', key)).then(snap => {
     window._week = snap.exists() ? snap.data() : {};
     renderSemana();
