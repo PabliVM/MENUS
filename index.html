@@ -507,8 +507,11 @@ header {
   <div id="week-bar" style="display:none"></div>
   <!-- Selector persona para macros -->
   <div id="grid-person-filter" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;padding-right:12px"></div>
-  <!-- GRID SEMANA -->
-  <div id="week-grid-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+  <!-- GRID SEMANA: header fijo + body scrollable -->
+  <div style="padding-right:12px">
+    <div id="week-grid-header" style="overflow:hidden"></div>
+  </div>
+  <div id="week-grid-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;padding-right:12px">
     <div id="week-grid"></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:12px;padding-right:12px">
@@ -1825,12 +1828,13 @@ function calcDayMacrosForEntity(dayIdx, entityId) {
 }
 
 function renderWeekGrid() {
-  const profiles = window._profiles || [];
+  const cols = `62px repeat(7, minmax(85px, 1fr))`;
   const mon = getWeekMonday(window._weekOffset || 0);
   const today = new Date();
   today.setHours(0,0,0,0);
 
   const grid = document.getElementById('week-grid');
+  const gridHeader = document.getElementById('week-grid-header');
   if (!grid) return;
 
   // Calcular fechas de la semana
@@ -1840,25 +1844,29 @@ function renderWeekGrid() {
     return d;
   });
 
-  // Número de columnas: 1 etiqueta + 7 días
-  grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
+  // ── HEADER FIJO (fuera del scroll) ──
+  if (gridHeader) {
+    gridHeader.style.display = 'grid';
+    gridHeader.style.gridTemplateColumns = cols;
+    gridHeader.style.gap = '3px';
+    let hHtml = `<div style="min-width:62px"></div>`; // esquina vacía
+    weekDates.forEach((date, i) => {
+      const isToday = date.getTime() === today.getTime();
+      const dayNum = date.getDate();
+      const dayShort = DAYS[i].substring(0, 2).toUpperCase();
+      hHtml += `<div class="wg-header-day ${isToday ? 'today' : ''}">
+        <div>${dayShort}</div>
+        <div style="font-size:0.7rem;font-weight:400;opacity:0.8">${dayNum}</div>
+      </div>`;
+    });
+    gridHeader.innerHTML = hHtml;
+  }
+
+  // ── BODY SCROLLABLE ──
+  grid.style.gridTemplateColumns = cols;
   grid.className = 'week-grid';
 
   let html = '';
-
-  // ── FILA CABECERA ──
-  // Celda vacía esquina
-  html += `<div></div>`;
-  // Headers días
-  weekDates.forEach((date, i) => {
-    const isToday = date.getTime() === today.getTime();
-    const dayNum = date.getDate();
-    const dayShort = DAYS[i].substring(0, 2).toUpperCase();
-    html += `<div class="wg-header-day ${isToday ? 'today' : ''}">
-      <div>${dayShort}</div>
-      <div style="font-size:0.7rem;font-weight:400;opacity:0.8">${dayNum}</div>
-    </div>`;
-  });
 
   // ── FILAS COMIDAS ──
   MEALS.forEach(({id: meal, label, icon}) => {
