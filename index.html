@@ -513,7 +513,8 @@ header {
   </div>
   <div style="display:flex;gap:8px;margin-top:12px;padding-right:12px">
     <button class="btn btn-green" style="flex:1" onclick="saveWeek()">💾 Guardar semana</button>
-    <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">📋 Historial</button>
+    <button class="btn btn-ghost btn-sm" onclick="copyWeekTo(1)" style="white-space:nowrap" title="Copiar esta semana a la siguiente">📋 Copiar →</button>
+    <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">🕘 Historial</button>
   </div>
 </div>
 
@@ -579,6 +580,7 @@ header {
   <div style="display:flex;gap:6px;margin-bottom:14px">
     <button class="filter-chip active" id="stats-tab-day"     onclick="setStatsTab('day')">📅 Día</button>
     <button class="filter-chip"        id="stats-tab-week"    onclick="setStatsTab('week')">📆 Semana</button>
+    <button class="filter-chip"        id="stats-tab-top"     onclick="setStatsTab('top')">🏆 Top platos</button>
     <button class="filter-chip"        id="stats-tab-history" onclick="setStatsTab('history')">📚 Historial</button>
   </div>
   <!-- Contenido dinámico -->
@@ -1693,6 +1695,19 @@ function confirmToast(msg, onConfirm) {
 }
 window.confirmToast = confirmToast;
 
+async function duplicateDish(id) {
+  const original = gd(id);
+  if (!original) return;
+  const newId = 'dish_' + Date.now();
+  const copy = JSON.parse(JSON.stringify(original)); // deep copy
+  copy.id   = newId;
+  copy.name = original.name + ' (copia)';
+  await setDoc(doc(db, 'dishes', newId), copy);
+  // Abrir la copia en el formulario para que pueda editarla inmediatamente
+  setTimeout(() => editDish(newId), 300);
+}
+window.duplicateDish = duplicateDish;
+
 async function deleteDish(id) {
   const dish = (window._dishes||[]).find(d=>d.id===id);
   const name = dish?.name || 'este plato';
@@ -1722,7 +1737,10 @@ function renderDishList() {
         ${d.macros ? nsBadgeCompact(d.macros) : ''}
         ${d.url ? `<div style="margin-top:4px"><a href="${d.url}" target="_blank" style="font-size:0.68rem;color:var(--accent);text-decoration:none">🎬 Ver vídeo →</a></div>` : ''}
       </div>
-      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDish('${d.id}')">✕</button>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();duplicateDish('${d.id}')" title="Duplicar receta" style="font-size:0.85rem;padding:3px 7px">⧉</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDish('${d.id}')">✕</button>
+      </div>
     </div>`).join('');
 }
 window.renderDishList = renderDishList;
@@ -1880,18 +1898,29 @@ function renderWeekGrid() {
   });
 
   // ── FILA TOTALES ──
+  const goalPerson = (window._persons||[]).find(p => p.id === gridPersonFilter);
+  const goalK = goalPerson?.goalK || 0;
+  const goalP = goalPerson?.goalP || 0;
   html += '<div class="wg-meal-label" style="color:var(--accent);font-size:0.55rem">TOTAL</div>';
   for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
     const t = calcDayMacrosForEntity(dayIdx, gridPersonFilter);
+    const kPct = goalK ? Math.min(100, Math.round(t.k / goalK * 100)) : 0;
+    const pPct = goalP ? Math.min(100, Math.round(t.p / goalP * 100)) : 0;
+    const kOver = goalK && t.k > goalK;
+    const pOver = goalP && t.p > goalP;
     let inner;
     if (t.k > 0 || t.p > 0) {
-      inner = '<div style="font-size:0.72rem;font-weight:700;color:var(--accent);text-align:center;margin-bottom:3px">'
-        + Math.round(t.k) + '<span style="font-size:0.55rem;font-weight:400"> kcal</span></div>'
+      inner = '<div style="font-size:0.72rem;font-weight:700;color:' + (kOver?'#e86d6d':'var(--accent)') + ';text-align:center;margin-bottom:2px">'
+        + Math.round(t.k) + '<span style="font-size:0.55rem;font-weight:400"> kcal</span>'
+        + (goalK ? '<span style="font-size:0.5rem;color:var(--muted)">/' + goalK + '</span>' : '')
+        + '</div>'
+        + (goalK ? '<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:3px"><div style="height:100%;width:' + kPct + '%;background:' + (kOver?'#e86d6d':'var(--accent)') + ';border-radius:2px"></div></div>' : '')
         + '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">'
-        + '<span style="font-size:0.58rem;color:#6db4e8;font-weight:600">P' + Math.round(t.p) + 'g</span>'
+        + '<span style="font-size:0.58rem;color:' + (pOver?'#e86d6d':'#6db4e8') + ';font-weight:600">P' + Math.round(t.p) + (goalP?'/'+goalP:'') + 'g</span>'
         + '<span style="font-size:0.58rem;color:#e8c06d;font-weight:600">C' + Math.round(t.c) + 'g</span>'
         + '<span style="font-size:0.58rem;color:#e8836d;font-weight:600">G' + Math.round(t.f) + 'g</span>'
-        + '</div>';
+        + '</div>'
+        + (goalP ? '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:2px"><div style="height:100%;width:' + pPct + '%;background:' + (pOver?'#e86d6d':'#6db4e8') + ';border-radius:2px"></div></div>' : '');
     } else {
       inner = '<div style="text-align:center;color:var(--muted);font-size:0.65rem">—</div>';
     }
@@ -2144,6 +2173,22 @@ async function removeFromSlot(dayIdx, meal, dishId, pid='all') {
 }
 window.removeFromSlot = removeFromSlot;
 
+async function copyWeekTo(offsetDelta) {
+  const targetOffset = (window._weekOffset || 0) + offsetDelta;
+  const targetKey = isoMonday(targetOffset);
+  // Verificar si ya tiene datos
+  const existing = await getDoc(doc(db, 'weeks', targetKey));
+  if (existing.exists() && Object.keys(existing.data()).length > 0) {
+    const ok = confirm(`La semana de destino ya tiene platos. ¿Sobreescribir?`);
+    if (!ok) return;
+  }
+  // Copiar datos actuales al target
+  const currentData = window._week || {};
+  await setDoc(doc(db, 'weeks', targetKey), currentData);
+  toast(`✅ Semana copiada a ${weekKeyToLabel(targetKey)}`);
+}
+window.copyWeekTo = copyWeekTo;
+
 async function saveWeek() {
   const {k,pr,unique} = calcWeekTotals();
   const mon=getWeekMonday(window._weekOffset||0);
@@ -2152,7 +2197,7 @@ async function saveWeek() {
   const label=`${fmt(mon)} – ${fmt(sun)}`;
   const slots={};
   for(let d=0;d<7;d++) MEALS.forEach(({id:m})=>{
-    const pids=['all',...(window._profiles||[]).map(p=>p.id)];
+    const pids=['all',...(window._persons||[]).map(p=>p.id),...(window._groups||[]).map(g=>g.id)];
     pids.forEach(pid=>{
       const key=sk(d,m,pid);
       slots[key]=(window._week?.[key]||[]).map(entry=>{
@@ -2197,10 +2242,24 @@ function renderPersonConfig() {
   if (pcTab === 'persons') {
     const persons = window._persons || [];
     const list = persons.map(p => `
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:9px;border:1.5px solid ${p.color}44;margin-bottom:6px">
-        <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
-        <span style="flex:1;font-size:0.85rem;font-weight:600;color:${p.color}">${p.name}</span>
-        <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem" onclick="removePerson('${p.id}')">✕</button>
+      <div style="background:var(--surface2);border-radius:9px;border:1.5px solid ${p.color}44;margin-bottom:6px;padding:8px 10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+          <span style="flex:1;font-size:0.85rem;font-weight:600;color:${p.color}">${p.name}</span>
+          <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem" onclick="removePerson('${p.id}')">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <label style="font-size:0.62rem;color:var(--muted)">Obj. kcal/día
+            <input type="number" value="${p.goalK||''}" placeholder="2000" min="0" max="9999"
+              style="display:block;width:100%;margin-top:2px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:0.75rem"
+              onchange="updatePersonGoal('${p.id}','goalK',this.value)"/>
+          </label>
+          <label style="font-size:0.62rem;color:var(--muted)">Obj. proteína g
+            <input type="number" value="${p.goalP||''}" placeholder="150" min="0" max="999"
+              style="display:block;width:100%;margin-top:2px;padding:3px 6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;color:var(--ink);font-size:0.75rem"
+              onchange="updatePersonGoal('${p.id}','goalP',this.value)"/>
+          </label>
+        </div>
       </div>`).join('') || '<div style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Sin personas. Añade la primera.</div>';
 
     el.innerHTML = list + `
@@ -2250,6 +2309,15 @@ function renderPersonConfig() {
 window.renderPersonConfig = renderPersonConfig;
 // alias de compatibilidad
 window.renderProfileListConfig = renderPersonConfig;
+
+async function updatePersonGoal(personId, field, value) {
+  const persons = window._persons || [];
+  const p = persons.find(p => p.id === personId);
+  if (!p) return;
+  p[field] = parseFloat(value) || 0;
+  await window._savePersons(persons);
+}
+window.updatePersonGoal = updatePersonGoal;
 
 async function addPerson() {
   const input = document.getElementById('new-person-name');
@@ -2657,7 +2725,7 @@ let _statsWeekData = null;        // datos cargados para statsWeekOffset
 
 function setStatsTab(tab) {
   statsTab = tab;
-  ['day','week','history'].forEach(t => {
+  ['day','week','top','history'].forEach(t => {
     const btn = document.getElementById('stats-tab-' + t);
     if (btn) btn.classList.toggle('active', t === tab);
   });
@@ -2903,6 +2971,43 @@ function renderStats() {
         <div style="font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Kcal por día</div>
         ${weekBarsHTML(days)}
       </div>`;
+
+  } else if (statsTab === 'top') {
+    // ── VISTA TOP PLATOS ──
+    const data = _statsWeekData || window._week || {};
+    const eids = ['all',...(window._persons||[]).map(p=>p.id),...(window._groups||[]).map(g=>g.id)];
+    const counts = {};
+    for (let d=0; d<7; d++) MEALS.forEach(({id:m}) => {
+      eids.forEach(eid => {
+        (data[sk(d,m,eid)]||[]).forEach(e => {
+          const id = typeof e==='string'?e:e?.id; if(!id) return;
+          counts[id] = (counts[id]||0) + 1;
+        });
+      });
+    });
+    const sorted = Object.entries(counts)
+      .map(([id,n]) => ({dish: gd(id), n}))
+      .filter(x => x.dish)
+      .sort((a,b) => b.n - a.n)
+      .slice(0, 10);
+
+    if (!sorted.length) {
+      el.innerHTML = '<div class="empty">Sin platos asignados esta semana.</div>';
+    } else {
+      el.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">` +
+        sorted.map(({dish,n}, i) => {
+          const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="font-size:0.7rem;color:var(--muted)">${i+1}</span>`;
+          const mac = dish.macros || {};
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+            <div style="font-size:1.1rem;width:24px;text-align:center">${medal}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dish.name}</div>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:2px">${macroHtml(mac)}</div>
+            </div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--accent);white-space:nowrap">${n}× semana</div>
+          </div>`;
+        }).join('') + `</div>`;
+    }
 
   } else {
     // ── VISTA HISTORIAL ──
