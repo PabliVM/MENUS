@@ -312,10 +312,16 @@ header {
 .wg-meal-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  padding: 4px 0;
+  justify-content: flex-end;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 6px 4px 0;
   color: var(--muted);
+  text-align: right;
+  word-break: break-word;
+  line-height: 1.2;
 }
 .wg-cell {
   background: var(--surface2);
@@ -498,7 +504,7 @@ header {
     <button class="btn btn-ghost btn-sm" onclick="openPersonConfig()" style="flex-shrink:0;margin-left:8px">⚙️</button>
   </div>
   <div id="week-selector-dropdown" style="display:none"></div>
-  <div class="week-bar" id="week-bar" style="margin-bottom:10px;margin-right:12px"></div>
+  <div id="week-bar" style="display:none"></div>
   <!-- GRID SEMANA -->
   <div id="week-grid-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
     <div id="week-grid"></div>
@@ -807,15 +813,15 @@ header {
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title">
-      <span>⚙️ Perfiles</span>
+      <span>👥 Personas y Grupos</span>
       <button class="sheet-close" onclick="closePersonConfig()">✕</button>
     </div>
-    <div style="font-size:0.7rem;color:var(--muted);margin-bottom:12px">Define los perfiles que comen. Aparecen como secciones en cada comida de la semana.</div>
-    <div id="person-list-config"></div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px">
-      <div class="field" style="margin-bottom:0"><input id="new-person-name" type="text" placeholder="Ej: Adultos, Bebé, Pablo…" maxlength="20" onkeydown="if(event.key==='Enter')addProfile()"/></div>
-      <button class="btn btn-accent btn-sm" onclick="addProfile()" style="width:auto">+ Añadir</button>
+    <!-- Tabs personas/grupos -->
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <button class="filter-chip active" id="pc-tab-persons" onclick="setPcTab('persons')">Personas</button>
+      <button class="filter-chip"        id="pc-tab-groups"  onclick="setPcTab('groups')">Grupos</button>
     </div>
+    <div id="person-config-content"></div>
   </div>
 </div>
 <nav class="bottom-nav">
@@ -914,10 +920,17 @@ function startListeners() {
     if (window._activeView === 'stats')     window.renderStats();
   });
   // Profiles
-  onSnapshot(doc(db, 'state', 'profiles'), snap => {
-    window._profiles = snap.exists() ? (snap.data().list || []) : [];
+  onSnapshot(doc(db, 'state', 'persons'), snap => {
+    window._persons = snap.exists() ? (snap.data().list || []) : [];
+    window._profiles = window._persons; // alias de compatibilidad
     if (window._activeView === 'semana') window.renderSemana();
-    if (document.getElementById('person-overlay')?.classList.contains('open')) renderProfileListConfig();
+    if (window._activeView === 'stats') window.renderStats();
+    if (document.getElementById('person-overlay')?.classList.contains('open')) renderPersonConfig();
+  });
+  onSnapshot(doc(db, 'state', 'groups'), snap => {
+    window._groups = snap.exists() ? (snap.data().list || []) : [];
+    if (window._activeView === 'semana') window.renderSemana();
+    if (document.getElementById('person-overlay')?.classList.contains('open')) renderPersonConfig();
   });
 
   // Extra shop items
@@ -984,9 +997,15 @@ window._deleteShopExtra = async (id) => {
 window._shopExtra = [];
 
 window._saveProfiles = async (list) => {
-  await setDoc(doc(db, 'state', 'profiles'), { list });
+  await setDoc(doc(db, 'state', 'persons'), { list });
 };
-window._profiles = [];
+window._savePersons = async (list) => {
+  await setDoc(doc(db, 'state', 'persons'), { list });
+};
+window._saveGroups = async (list) => {
+  await setDoc(doc(db, 'state', 'groups'), { list });
+};
+window._profiles = []; window._persons = []; window._groups = [];
 window._week = {};
 
 setSyncState('syncing', 'conectando…');
@@ -997,10 +1016,11 @@ startListeners();
 // ── APP STATE ──
 const DAYS  = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const MEALS = [
-  { id:'breakfast', label:'Desayuno', icon:'🌅' },
-  { id:'lunch',     label:'Comida',   icon:'☀️' },
-  { id:'snack',     label:'Merienda', icon:'🍎' },
-  { id:'dinner',    label:'Cena',     icon:'🌙' },
+  { id:'breakfast', label:'Desayuno', icon:'Desayuno'  },
+  { id:'brunch',    label:'Almuerzo', icon:'Almuerzo'  },
+  { id:'lunch',     label:'Comida',   icon:'Comida'    },
+  { id:'snack',     label:'Merienda', icon:'Merienda'  },
+  { id:'dinner',    label:'Cena',     icon:'Cena'      },
 ];
 const UNIT_OPTS = ['g','ml','unidad','taza','cdta','cda'];
 let ingRows = []; // compatibility alias → dishParts[0].rows
@@ -1669,7 +1689,9 @@ function renderSemana() {
 window.renderSemana = renderSemana;
 
 function renderPersonTabs() {
-  const profiles = window._profiles || [];
+  const profiles = window._profiles || []; // alias compatibilidad
+  const persons  = window._persons  || [];
+  const groups   = window._groups   || [];
   const all = [{ id:'all', name:'Todos', color:'#e8a327' }, ...profiles];
   document.getElementById('person-tabs').innerHTML = all.map(p => {
     const active = selPerson === p.id;
@@ -1698,7 +1720,7 @@ function renderWeekGrid() {
   });
 
   // Número de columnas: 1 etiqueta + 7 días
-  grid.style.gridTemplateColumns = `52px repeat(7, minmax(88px, 1fr))`;
+  grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
   grid.className = 'week-grid';
 
   let html = '';
@@ -1733,48 +1755,120 @@ function renderWeekGrid() {
 window.renderWeekGrid = renderWeekGrid;
 
 function buildWgCell(dayIdx, meal, profiles) {
+  // Recoger todas las entidades que tienen entradas en esta celda
+  const persons  = window._persons || [];
+  const groups   = window._groups  || [];
+  const allEntities = [...persons, ...groups];
   const sharedEntries = window._week?.[sk(dayIdx, meal, 'all')] || [];
 
-  const buildDishHTML = (entries, profileId) => entries.map(e => {
+  // Recoger entidades con entradas en esta celda
+  const usedEntityIds = allEntities
+    .map(e => e.id)
+    .filter(eid => (window._week?.[sk(dayIdx, meal, eid)] || []).length > 0);
+
+  // Si hay shared entries, siempre mostrar al menos una sección 'all'
+  const hasShared = sharedEntries.length > 0;
+
+  const buildDishHTML = (entries, eid) => entries.map(e => {
     if (e?.free) return `<div class="wg-dish">
       <span class="wg-dish-name">📝 ${e.name}</span>
-      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${e.id}','${profileId}')">✕</button>
+      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${e.id}','${eid}')">✕</button>
     </div>`;
     const d = gd(typeof e === 'string' ? e : e.id);
     if (!d) return '';
     return `<div class="wg-dish">
       <span class="wg-dish-name">${d.name}</span>
-      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${d.id}','${profileId}')">✕</button>
+      <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${d.id}','${eid}')">✕</button>
     </div>`;
   }).join('');
 
   let inner = '';
 
-  if (profiles.length === 0) {
-    // Sin perfiles — todo va a 'all'
-    inner = buildDishHTML(sharedEntries, 'all');
-    inner += `<button class="wg-add-btn" onclick="openPicker(${dayIdx},'${meal}','all')">+</button>`;
-  } else {
-    profiles.forEach((profile, i) => {
-      if (i > 0) inner += `<hr class="wg-profile-sep">`;
-      const entries = window._week?.[sk(dayIdx, meal, profile.id)] || [];
-      const allEntries = i === 0 ? [...sharedEntries, ...entries] : entries;
-      const dishes = buildDishHTML(allEntries, profile.id);
-      inner += `<div>
-        <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
-          <div class="wg-profile-dot" style="background:${profile.color}"></div>
-          <span style="font-size:0.55rem;font-weight:700;color:${profile.color};text-transform:uppercase;letter-spacing:0.4px">${profile.name}</span>
-          <button class="wg-add-btn" style="width:auto;padding:1px 5px;margin:0 0 0 auto;border-radius:4px;font-size:0.65rem"
-            onclick="event.stopPropagation();openPicker(${dayIdx},'${meal}','${profile.id}')">+</button>
-        </div>
-        ${dishes}
-      </div>`;
-    });
+  // Sección 'all' si hay entradas compartidas
+  if (hasShared) {
+    inner += `<div>
+      <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
+        <div class="wg-profile-dot" style="background:var(--muted)"></div>
+        <span style="font-size:0.52rem;font-weight:700;color:var(--muted);text-transform:uppercase">Todos</span>
+      </div>
+      ${buildDishHTML(sharedEntries, 'all')}
+    </div>`;
+    if (usedEntityIds.length) inner += `<hr class="wg-profile-sep">`;
   }
 
-  return `<div class="wg-cell">${inner}</div>`;
+  // Secciones por entidad
+  usedEntityIds.forEach((eid, i) => {
+    if (i > 0) inner += `<hr class="wg-profile-sep">`;
+    const entity = allEntities.find(e=>e.id===eid);
+    const entries = window._week?.[sk(dayIdx, meal, eid)] || [];
+    inner += `<div>
+      <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
+        <div class="wg-profile-dot" style="background:${entity?.color||'var(--muted)'}"></div>
+        <span style="font-size:0.52rem;font-weight:700;color:${entity?.color||'var(--muted)'};text-transform:uppercase">${entity?.name||eid}</span>
+      </div>
+      ${buildDishHTML(entries, eid)}
+    </div>`;
+  });
+
+  // Botón + con dropdown de entidades
+  const cellKey = `cell-${dayIdx}-${meal}`;
+  inner += `<button class="wg-add-btn" style="margin-top:4px"
+    onclick="event.stopPropagation();toggleCellDropdown('${cellKey}',${dayIdx},'${meal}')">+ Asignar</button>
+  <div id="${cellKey}-drop" style="display:none;position:absolute;z-index:200;background:var(--surface2);
+    border:1px solid var(--border2);border-radius:10px;padding:6px;min-width:130px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);bottom:100%;left:0;margin-bottom:4px">
+    ${allEntities.length === 0 ? '<div style="font-size:0.7rem;color:var(--muted);padding:4px">Crea personas primero</div>' :
+      allEntities.map(e => `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:0.75rem;font-weight:600"
+        onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','${e.id}')">
+        <div style="width:8px;height:8px;border-radius:50%;background:${e.color}"></div>
+        <span style="color:${e.color}">${e.name}</span>
+      </div>`).join('')
+    }
+    <div style="border-top:1px solid var(--border2);margin-top:4px;padding-top:4px">
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:0.72rem;color:var(--muted)"
+        onmousedown="event.preventDefault()" onclick="openPickerForEntity(${dayIdx},'${meal}','all')">
+        Sin asignar (general)
+      </div>
+    </div>
+  </div>`;
+
+  return `<div class="wg-cell" style="position:relative">${inner}</div>`;
 }
 window.buildWgCell = buildWgCell;
+
+let _openCellDropdown = null;
+function toggleCellDropdown(key, dayIdx, meal) {
+  // Cerrar el que estaba abierto
+  if (_openCellDropdown && _openCellDropdown !== key) {
+    const prev = document.getElementById(_openCellDropdown + '-drop');
+    if (prev) prev.style.display = 'none';
+  }
+  const el = document.getElementById(key + '-drop');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  _openCellDropdown = isOpen ? null : key;
+}
+window.toggleCellDropdown = toggleCellDropdown;
+
+// Cerrar dropdown al hacer click fuera
+document.addEventListener('click', () => {
+  if (_openCellDropdown) {
+    const el = document.getElementById(_openCellDropdown + '-drop');
+    if (el) el.style.display = 'none';
+    _openCellDropdown = null;
+  }
+});
+
+function openPickerForEntity(dayIdx, meal, entityId) {
+  if (_openCellDropdown) {
+    const el = document.getElementById(_openCellDropdown + '-drop');
+    if (el) el.style.display = 'none';
+    _openCellDropdown = null;
+  }
+  openPicker(dayIdx, meal, entityId);
+}
+window.openPickerForEntity = openPickerForEntity;
 
 function renderWeekBar() {
   const {k,pr,unique} = calcWeekTotals();
@@ -1921,47 +2015,177 @@ window.saveWeek = saveWeek;
 
 // ── PERSONS CONFIG ──
 function openPersonConfig() {
-  renderProfileListConfig();
+  pcTab = 'persons';
+  document.getElementById('pc-tab-persons')?.classList.add('active');
+  document.getElementById('pc-tab-groups')?.classList.remove('active');
+  renderPersonConfig();
   document.getElementById('person-overlay').classList.add('open');
-  // NO hacer focus automático para evitar que el teclado tape el panel al abrirlo
-  // El usuario puede pulsar el input cuando quiera
 }
 window.openPersonConfig = openPersonConfig;
 
-function renderProfileListConfig() {
-  const profiles = window._profiles || [];
-  const el = document.getElementById('person-list-config');
-  const COLORS = ['#e8836d','#6db4e8','#a87de8','#4a9e6b','#e8c06d','#e8a327','#6de8d4'];
-  if (!profiles.length) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Sin perfiles. Añade el primero.</div>';
-    return;
+// ══════════════════════════════════════════════
+// PERSONAS Y GRUPOS
+// ══════════════════════════════════════════════
+const PERSON_COLORS = ['#e8836d','#6db4e8','#a87de8','#4a9e6b','#e8c06d','#e8a327','#6de8d4','#e86da8'];
+let pcTab = 'persons';
+
+function setPcTab(tab) {
+  pcTab = tab;
+  document.getElementById('pc-tab-persons')?.classList.toggle('active', tab==='persons');
+  document.getElementById('pc-tab-groups')?.classList.toggle('active', tab==='groups');
+  renderPersonConfig();
+}
+window.setPcTab = setPcTab;
+
+function renderPersonConfig() {
+  const el = document.getElementById('person-config-content');
+  if (!el) return;
+  if (pcTab === 'persons') {
+    const persons = window._persons || [];
+    const list = persons.map(p => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:9px;border:1.5px solid ${p.color}44;margin-bottom:6px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+        <span style="flex:1;font-size:0.85rem;font-weight:600;color:${p.color}">${p.name}</span>
+        <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem" onclick="removePerson('${p.id}')">✕</button>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Sin personas. Añade la primera.</div>';
+
+    el.innerHTML = list + `
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px">
+        <div class="field" style="margin-bottom:0">
+          <input id="new-person-name" type="text" placeholder="Ej: Pablo, Laura, Bebé…" maxlength="20"
+            onkeydown="if(event.key==='Enter')addPerson()"/>
+        </div>
+        <button class="btn btn-accent btn-sm" onclick="addPerson()" style="width:auto">+ Añadir</button>
+      </div>`;
+  } else {
+    // GRUPOS
+    const persons = window._persons || [];
+    const groups  = window._groups  || [];
+    if (!persons.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.78rem">Crea personas primero.</div>';
+      return;
+    }
+    const groupList = groups.map(g => {
+      const memberChips = persons.map(p => {
+        const inGroup = (g.members||[]).includes(p.id);
+        return `<span style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;
+          font-size:0.65rem;font-weight:600;cursor:pointer;border:1.5px solid ${p.color};
+          background:${inGroup ? p.color+'33' : 'transparent'};color:${p.color}"
+          onclick="toggleGroupMember('${g.id}','${p.id}')">${p.name}</span>`;
+      }).join('');
+      return `<div style="background:var(--surface2);border-radius:10px;padding:10px;margin-bottom:8px;border:1.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${g.color};flex-shrink:0"></div>
+          <span style="flex:1;font-size:0.85rem;font-weight:700;color:${g.color}">${g.name}</span>
+          <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem" onclick="removeGroup('${g.id}')">✕</button>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${memberChips}</div>
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:0.78rem;margin-bottom:8px">Sin grupos. Añade uno.</div>';
+
+    el.innerHTML = groupList + `
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px">
+        <div class="field" style="margin-bottom:0">
+          <input id="new-group-name" type="text" placeholder="Ej: Todos, Adultos, Niños…" maxlength="20"
+            onkeydown="if(event.key==='Enter')addGroup()"/>
+        </div>
+        <button class="btn btn-accent btn-sm" onclick="addGroup()" style="width:auto">+ Crear</button>
+      </div>`;
   }
-  el.innerHTML = profiles.map(p => `
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface2);border-radius:10px;border:1.5px solid ${p.color}44;margin-bottom:8px">
-      <div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
-      <span style="flex:1;font-size:0.85rem;font-weight:600;color:${p.color}">${p.name}</span>
-      <button class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:0.65rem" onclick="removeProfile('${p.id}')">✕</button>
-    </div>`).join('');
 }
-window.renderProfileListConfig = renderProfileListConfig;
+window.renderPersonConfig = renderPersonConfig;
+// alias de compatibilidad
+window.renderProfileListConfig = renderPersonConfig;
 
-async function addProfile() {
+async function addPerson() {
   const input = document.getElementById('new-person-name');
-  const name = input.value.trim(); if (!name) return;
-  const COLORS = ['#e8836d','#6db4e8','#a87de8','#4a9e6b','#e8c06d','#e8a327','#6de8d4'];
-  const profiles = window._profiles || [];
-  const color = COLORS[profiles.length % COLORS.length];
-  const id = 'p' + Date.now();
-  await window._saveProfiles([...profiles, { id, name, color }]);
-  input.value = '';
+  const name = input?.value.trim(); if (!name) return;
+  const persons = window._persons || [];
+  const color = PERSON_COLORS[persons.length % PERSON_COLORS.length];
+  const id = 'per_' + Date.now();
+  await window._savePersons([...persons, { id, name, color }]);
+  if (input) input.value = '';
 }
-window.addProfile = addProfile;
+window.addPerson = addPerson;
+// alias de compatibilidad
+window.addProfile = addPerson;
 
-async function removeProfile(id) {
-  const profiles = (window._profiles||[]).filter(p=>p.id!==id);
-  await window._saveProfiles(profiles);
+async function removePerson(id) {
+  const persons = (window._persons||[]).filter(p=>p.id!==id);
+  // Limpiar de grupos
+  const groups = (window._groups||[]).map(g => ({
+    ...g, members: (g.members||[]).filter(m=>m!==id)
+  }));
+  await window._savePersons(persons);
+  await window._saveGroups(groups);
 }
-window.removeProfile = removeProfile;
+window.removePerson = removePerson;
+window.removeProfile = removePerson;
+
+async function addGroup() {
+  const input = document.getElementById('new-group-name');
+  const name = input?.value.trim(); if (!name) return;
+  const groups = window._groups || [];
+  const persons = window._persons || [];
+  const color = PERSON_COLORS[(groups.length + 2) % PERSON_COLORS.length];
+  const id = 'grp_' + Date.now();
+  // "Todos" por defecto incluye a todos
+  const members = name.toLowerCase() === 'todos' ? persons.map(p=>p.id) : [];
+  await window._saveGroups([...groups, { id, name, color, members }]);
+  if (input) input.value = '';
+}
+window.addGroup = addGroup;
+
+async function removeGroup(id) {
+  await window._saveGroups((window._groups||[]).filter(g=>g.id!==id));
+}
+window.removeGroup = removeGroup;
+
+async function toggleGroupMember(groupId, personId) {
+  const groups = (window._groups||[]).map(g => {
+    if (g.id !== groupId) return g;
+    const members = g.members || [];
+    const idx = members.indexOf(personId);
+    return { ...g, members: idx >= 0 ? members.filter(m=>m!==personId) : [...members, personId] };
+  });
+  await window._saveGroups(groups);
+}
+window.toggleGroupMember = toggleGroupMember;
+
+// Devuelve array de personIds para una entidad (persona o grupo)
+function getPersonsForEntity(entityId) {
+  if (!entityId || entityId === 'all') {
+    return (window._persons||[]).map(p=>p.id);
+  }
+  const group = (window._groups||[]).find(g=>g.id===entityId);
+  if (group) return group.members || [];
+  // Es una persona directa
+  const person = (window._persons||[]).find(p=>p.id===entityId);
+  return person ? [person.id] : [];
+}
+window.getPersonsForEntity = getPersonsForEntity;
+
+// Devuelve color de una entidad (persona o grupo)
+function getEntityColor(entityId) {
+  if (!entityId || entityId === 'all') return 'var(--accent)';
+  const group = (window._groups||[]).find(g=>g.id===entityId);
+  if (group) return group.color;
+  const person = (window._persons||[]).find(p=>p.id===entityId);
+  return person ? person.color : 'var(--muted)';
+}
+window.getEntityColor = getEntityColor;
+
+// Devuelve nombre de una entidad
+function getEntityName(entityId) {
+  if (!entityId || entityId === 'all') return 'Todos';
+  const group = (window._groups||[]).find(g=>g.id===entityId);
+  if (group) return group.name;
+  const person = (window._persons||[]).find(p=>p.id===entityId);
+  return person ? person.name : entityId;
+}
+window.getEntityName = getEntityName;
+
+
 
 function closePersonConfig(e) {
   if (e && e.target!==document.getElementById('person-overlay')) return;
@@ -2235,18 +2459,61 @@ function renderStatsPersonFilter() {
 
 // ── Macros de la semana actual (window._week) para un perfil ──
 function getMacrosFromWeek(pid) {
-  // Devuelve array de 7 elementos {k,p,c,f,salt,fiber} por día
+  // Devuelve array de 7 elementos por día
   const days = Array.from({length:7}, () => ({k:0,p:0,c:0,f:0,salt:0,fiber:0,count:0}));
   if (!window._week) return days;
-  const pids = pid === 'all'
-    ? ['all', ...(window._profiles||[]).map(x=>x.id)]
-    : ['all', pid];
+
+  // Construir lista de slotIds relevantes:
+  // - 'all' siempre
+  // - si pid='all': todos los slotIds (personas + grupos)
+  // - si pid es personId: ese personId + grupos que lo contienen
+  // - si pid es groupId: ese groupId
+  const allSlotIds = [
+    'all',
+    ...(window._persons||[]).map(p=>p.id),
+    ...(window._groups||[]).map(g=>g.id)
+  ];
+
+  let slotIds;
+  if (pid === 'all') {
+    slotIds = allSlotIds;
+  } else {
+    // ¿Es una persona?
+    const isPerson = (window._persons||[]).some(p=>p.id===pid);
+    if (isPerson) {
+      // Incluir su slot directo + grupos que lo contienen
+      const groupsWithPerson = (window._groups||[])
+        .filter(g=>(g.members||[]).includes(pid))
+        .map(g=>g.id);
+      slotIds = ['all', pid, ...groupsWithPerson];
+    } else {
+      // Es un grupo — solo ese slotId
+      slotIds = ['all', pid];
+    }
+  }
+
   for (let d = 0; d < 7; d++) {
     MEALS.forEach(({id:m}) => {
-      pids.forEach(slotPid => {
+      // Evitar contar el mismo plato dos veces para la misma persona
+      // (ej: plato asignado a 'Todos' y a 'Adultos' que incluye a la persona)
+      const countedDishes = new Set();
+      slotIds.forEach(slotPid => {
         (window._week?.[sk(d,m,slotPid)]||[]).forEach(e => {
-          if (e?.free) return;
-          const dish = gd(typeof e==='string'?e:e.id);
+          if (e?.free) {
+            // Platos libres sí suman macros si las tienen
+            const mac = e.macros || {};
+            if (mac.k) { days[d].k += mac.k; days[d].count++; }
+            if (mac.p) days[d].p += mac.p;
+            if (mac.c) days[d].c += mac.c;
+            if (mac.f) days[d].f += mac.f;
+            if (mac.salt) days[d].salt += mac.salt;
+            if (mac.fiber) days[d].fiber += mac.fiber;
+            return;
+          }
+          const dishId = typeof e==='string'?e:e.id;
+          if (countedDishes.has(dishId)) return; // deduplicar
+          countedDishes.add(dishId);
+          const dish = gd(dishId);
           if (!dish) return;
           const mac = dish.macros || {};
           days[d].k    += mac.k    || 0;
