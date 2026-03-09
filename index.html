@@ -787,7 +787,7 @@ header {
       <div class="field" style="max-width:160px"><label>🍽 Raciones que salen</label><input id="f-servings" type="number" min="1" max="20" placeholder="Ej: 4" style="text-align:center"/></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)">Ingredientes</div>
-        <button class="btn btn-accent btn-sm" onclick="openCatForNew()" style="font-size:0.72rem;padding:4px 12px">+ Añadir</button>
+        <button type="button" class="btn btn-accent btn-sm" onclick="openCatForNew()" style="font-size:0.72rem;padding:4px 12px">+ Añadir</button>
       </div>
       <div id="ing-list-main" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
       <div class="macro-preview" id="macro-preview">
@@ -1246,12 +1246,22 @@ window.removeIng = removeIng;
 
 // Abre el picker para AÑADIR un nuevo ingrediente
 function openCatForNew() {
-  catTarget = null;
-  document.getElementById('cat-title').textContent = '¿Qué ingrediente quieres añadir?';
-  const s = document.getElementById('cat-search'); if (s) s.value = '';
-  renderCatBody();
-  document.getElementById('cat-overlay').classList.add('open');
-  setTimeout(() => s?.focus(), 150);
+  try {
+    catTarget = null;
+    const title = document.getElementById('cat-title');
+    if (title) title.textContent = '¿Qué ingrediente quieres añadir?';
+    const s = document.getElementById('cat-search');
+    if (s) s.value = '';
+    try { renderCatBody(); } catch(e) {
+      const body = document.getElementById('cat-body');
+      if (body) body.innerHTML = '<div style="color:red;padding:12px">Error cargando: '+e.message+'</div>';
+    }
+    const overlay = document.getElementById('cat-overlay');
+    if (overlay) {
+      overlay.classList.add('open');
+    }
+    setTimeout(() => { try { s && s.focus(); } catch(e){} }, 150);
+  } catch(e) { alert('Error abriendo picker: ' + e.message); }
 }
 window.openCatForNew = openCatForNew;
 
