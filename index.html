@@ -483,6 +483,7 @@ header {
 </head>
 <body>
 
+
 <header>
   <div class="logo">Menú <span>planificador semanal</span></div>
   <div class="header-right">
@@ -655,24 +656,10 @@ header {
 
     <div style="font-size:0.62rem;color:var(--muted);margin:4px 0 10px;letter-spacing:1px;text-transform:uppercase">Valores nutricionales por 100g / 100ml</div>
 
-    <!-- Macros básicas -->
+    <!-- Kcal / kJ -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
       <div class="field" style="margin-bottom:0"><label>Kcal</label><input type="number" id="lib-k" placeholder="165" min="0"/></div>
       <div class="field" style="margin-bottom:0"><label>kJ (opcional)</label><input type="number" id="lib-kj" placeholder="690" min="0"/></div>
-    </div>
-
-    <!-- Proteínas -->
-    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:6px">
-      <div class="field" style="margin-bottom:0"><label>Proteínas (g)</label><input type="number" id="lib-p" placeholder="31" min="0"/></div>
-    </div>
-
-    <!-- Hidratos -->
-    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
-      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Hidratos de carbono</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-c" placeholder="0" min="0"/></div>
-        <div class="field" style="margin-bottom:0"><label>— de los cuales azúcares (g)</label><input type="number" id="lib-sugar" placeholder="0" min="0"/></div>
-      </div>
     </div>
 
     <!-- Grasas -->
@@ -684,10 +671,24 @@ header {
       </div>
     </div>
 
-    <!-- Sal y fibra -->
+    <!-- Hidratos -->
+    <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Hidratos de carbono</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field" style="margin-bottom:0"><label>Total (g)</label><input type="number" id="lib-c" placeholder="0" min="0"/></div>
+        <div class="field" style="margin-bottom:0"><label>— de los cuales azúcares (g)</label><input type="number" id="lib-sugar" placeholder="0" min="0"/></div>
+      </div>
+    </div>
+
+    <!-- Proteínas -->
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:6px">
+      <div class="field" style="margin-bottom:0"><label>Proteínas (g)</label><input type="number" id="lib-p" placeholder="31" min="0"/></div>
+    </div>
+
+    <!-- Fibra y Sal -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div class="field" style="margin-bottom:0"><label>Sal (g)</label><input type="number" id="lib-salt" placeholder="0.1" min="0"/></div>
       <div class="field" style="margin-bottom:0"><label>Fibra (g)</label><input type="number" id="lib-fiber" placeholder="0" min="0"/></div>
+      <div class="field" style="margin-bottom:0"><label>Sal (g)</label><input type="number" id="lib-salt" placeholder="0.1" min="0"/></div>
     </div>
 
     <!-- Precio -->
@@ -917,14 +918,14 @@ window._checked = JSON.parse(localStorage.getItem('ms-checked') || '[]');
 // ── REALTIME LISTENERS ──
 function startListeners() {
   // Dishes
-  onSnapshot(collection(db, 'dishes'), snap => {
+  try { onSnapshot(collection(db, 'dishes'), snap => {
     window._dishes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     setSyncState('ok', 'sincronizado');
     if (window._activeView === 'semana')    window.renderSemana();
     if (window._activeView === 'stats')     window.renderStats();
     if (window._activeView === 'recetas')   window.renderRecetas();
     if (window._activeView === 'compra')    window.renderCompra();
-  }, () => setSyncState('err', 'sin conexión'));
+  }, () => setSyncState('err', 'sin conexión')); } catch(e) { setSyncState('err', 'sin Firebase'); }
 
   // Week — carga inicial de la semana actual
   window._week = {};
@@ -1063,11 +1064,28 @@ window._saveGroups = async (list) => {
 window._profiles = []; window._persons = []; window._groups = [];
 window._week = {};
 
-setSyncState('syncing', 'conectando…');
-startListeners();
+try {
+  setSyncState('syncing', 'conectando…');
+  startListeners();
+} catch(e) {
+  setSyncState('err', 'sin Firebase');
+}
 </script>
 
 <script>
+// ── ESTADO GLOBAL (vars no declaradas causaban ReferenceError en Safari) ──
+let gridPersonFilter  = 'all';
+let selPerson         = 'all';
+let selDay            = 0;
+let editId            = null;
+window._weekOffset    = 0;
+window._statsWeekOffset = 0;
+
+// ── HELPERS GLOBALES ──
+const sk = (dayIdx, meal, eid) => `${dayIdx}-${meal}-${eid}`;
+const gd = (id) => (window._dishes || []).find(d => d.id === id);
+const slotId = (entry) => (typeof entry === 'string') ? entry : entry?.id;
+
 // ── APP STATE ──
 const DAYS  = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const MEALS = [
@@ -1437,7 +1455,7 @@ function renderDishList() {
     <div class="dish-item" onclick="editDish('${d.id}')">
       <div class="dish-info">
         <div class="dish-name">🍽 ${d.name}</div>
-        <div class="dish-macros">${macroHtml(d.macros)}</div>
+        <div class="dish-macros">${macroHtml(d.macros)} ${kcalTraffic(d.macros?.k,'dish')}</div>
         ${d.macros ? nsBadgeCompact(d.macros) : ''}
         ${d.url ? `<div style="margin-top:4px"><a href="${d.url}" target="_blank" style="font-size:0.68rem;color:var(--accent);text-decoration:none">🎬 Ver vídeo →</a></div>` : ''}
       </div>
@@ -1556,7 +1574,30 @@ function calcDayMacrosForEntity(dayIdx, entityId) {
   return totals;
 }
 
+// ── SEMÁFORO CALÓRICO ──
+// mode: 'ing' → por 100g (≤80 🟢, 80-250 🟡, ≥250 🔴)
+// mode: 'dish' → por ración (≤400 🟢, 400-650 🟡, ≥650 🔴)
+function kcalTraffic(kcal, mode) {
+  if (!kcal || kcal <= 0) return '';
+  const k = parseFloat(kcal);
+  if (mode === 'ing') {
+    if (k <= 80)  return '🟢';
+    if (k <= 250) return '🟡';
+    return '🔴';
+  } else {
+    if (k <= 400) return '🟢';
+    if (k <= 650) return '🟡';
+    return '🔴';
+  }
+}
+
 function renderWeekGrid() {
+  try { _renderWeekGridInner(); } catch(err) {
+    const g = document.getElementById('week-grid');
+    if (g) { g.style.display='block'; g.innerHTML='<div style="color:red;padding:12px">ERROR: '+err.message+'</div>'; }
+  }
+}
+function _renderWeekGridInner() {
   const profiles = window._profiles || [];
   const persons  = window._persons  || [];
   const groups   = window._groups   || [];
@@ -1632,7 +1673,7 @@ function renderWeekGrid() {
   }
 
   grid.innerHTML = html;
-}
+} // end _renderWeekGridInner
 window.renderWeekGrid = renderWeekGrid;
 
 function buildWgCell(dayIdx, meal, profiles) {
@@ -1653,7 +1694,7 @@ function buildWgCell(dayIdx, meal, profiles) {
     const d = gd(typeof e === 'string' ? e : e.id);
     if (!d) return '';
     return `<div class="wg-dish">
-      <span class="wg-dish-name">${d.name}</span>
+      <span class="wg-dish-name">${d.name} ${kcalTraffic(d.macros?.k,'dish')}</span>
       <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${d.id}','${eid}')">✕</button>
     </div>`;
   }).join('');
@@ -1749,9 +1790,10 @@ function renderWeekBar() {
 }
 
 function getWeekMonday(offset) {
+  const off = parseInt(offset) || 0;
   const now = new Date();
   const mon = new Date(now);
-  mon.setDate(now.getDate() - ((now.getDay()+6)%7) + offset*7);
+  mon.setDate(now.getDate() - ((now.getDay()+6)%7) + off*7);
   mon.setHours(0,0,0,0);
   return mon;
 }
@@ -3110,7 +3152,7 @@ function renderLibList() {
       <div class="dish-info">
         <div class="dish-name">${CAT_ICONS[item.cat]||'⭐'} ${item.name}${item.brand?` <span style="font-size:0.72rem;color:var(--muted)">${item.brand}</span>`:''}</div>
         <div class="dish-macros">
-          ${item.k  ? `<span class="macro-tag kcal">🔥${item.k}kcal</span>` : ''}
+          ${item.k  ? `<span class="macro-tag kcal">🔥${item.k}kcal</span>${kcalTraffic(item.k,'ing')}` : ''}
           ${item.p  ? `<span class="macro-tag prot">P:${item.p}g</span>` : ''}
           ${item.c  ? `<span class="macro-tag carb">C:${item.c}g</span>` : ''}
           ${item.f  ? `<span class="macro-tag fat">G:${item.f}g</span>` : ''}
@@ -3172,7 +3214,7 @@ function renderRecetas() {
       <div class="dish-info">
         <div class="dish-name">🍽 ${d.name}</div>
         <div class="dish-macros">
-          ${m.k ? `<span class="macro-tag kcal">🔥${m.k}kcal</span>` : ''}
+          ${m.k ? `<span class="macro-tag kcal">🔥${m.k}kcal</span>${kcalTraffic(m.k,'dish')}` : ''}
           ${m.p ? `<span class="macro-tag prot">P:${m.p}g</span>` : ''}
           ${m.c ? `<span class="macro-tag carb">C:${m.c}g</span>` : ''}
           ${m.f ? `<span class="macro-tag fat">G:${m.f}g</span>` : ''}
@@ -3625,8 +3667,16 @@ window.showBibSub = showBibSub;
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
 renderIngList();
-// Arrancar en Recetas
-switchView('recetas');
+// Inicializar variables globales por defecto (Firebase las sobreescribirá cuando cargue)
+if (!window._dishes)   window._dishes   = [];
+if (!window._week)     window._week     = {};
+if (!window._persons)  window._persons  = [];
+if (!window._groups)   window._groups   = [];
+if (!window._profiles) window._profiles = [];
+if (!window._ingLib)   window._ingLib   = [];
+if (!window._history)  window._history  = [];
+// Arrancar en Semana (más útil, y así el grid se renderiza de inmediato)
+switchView('semana');
 </script>
 </body>
 </html>
