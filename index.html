@@ -1268,28 +1268,26 @@ window.openCatForNew = openCatForNew;
 // Confirmar selección del picker — pide cantidad después
 function confirmCat(item) {
   closeCat();
-  // Pedir cantidad
-  const qty = prompt(`¿Cuántos gramos de "${item.name}"?`, '100');
-  if (qty === null) return; // cancelado
-  const id = 'ing_' + Date.now();
-  dishIngredients.push({
-    id,
-    name: item.name,
-    qty: parseFloat(qty) || 100,
-    unit: 'g',
-    macros100: item.k != null ? { k: item.k, p: item.p||0, c: item.c||0, f: item.f||0 } : null
+  showQtyPicker(`Cantidad de "${item.name}"`, (amt, unit) => {
+    const id = 'ing_' + Date.now();
+    dishIngredients.push({
+      id,
+      name: item.name,
+      qty: amt,
+      unit: unit,
+      macros100: item.k != null ? { k: item.k, p: item.p||0, c: item.c||0, f: item.f||0 } : null
+    });
+    const lib = window._ingLib || [];
+    const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
+    if (!alreadySaved && item.k != null) {
+      setTimeout(() => {
+        if (confirm(`¿Guardar "${item.name}" en tu biblioteca para otras recetas?`)) {
+          saveToIngLib({ name: item.name, p: item.p, c: item.c, f: item.f, k: item.k });
+        }
+      }, 300);
+    }
+    renderIngList();
   });
-  // Ofrecer guardar en biblioteca si no está
-  const lib = window._ingLib || [];
-  const alreadySaved = lib.some(l => l.name.toLowerCase() === item.name.toLowerCase());
-  if (!alreadySaved && item.k != null) {
-    setTimeout(() => {
-      if (confirm(`¿Guardar "${item.name}" en tu biblioteca para usarlo en otras recetas?`)) {
-        saveToIngLib({ name: item.name, p: item.p, c: item.c, f: item.f, k: item.k });
-      }
-    }, 200);
-  }
-  renderIngList();
 }
 window.confirmCat = confirmCat;
 
@@ -1310,22 +1308,22 @@ function confirmManual() {
   const name = prompt('Nombre del ingrediente:', '') || 'Ingrediente manual';
   const save = document.getElementById('m-save')?.checked;
   closeCat();
-  const qty = prompt(`¿Cuántos gramos de "${name}"?`, '100');
-  if (qty === null) return;
-  const id = 'ing_' + Date.now();
-  dishIngredients.push({ id, name, qty: parseFloat(qty)||100, unit:'g', macros100:{k,p,c,f,fiber,salt} });
-  if (save) saveToIngLib({ name, p, c, f, k, fiber, salt });
-  renderIngList();
+  showQtyPicker(`Cantidad de "${name}"`, (amt, unit) => {
+    const id = 'ing_' + Date.now();
+    dishIngredients.push({ id, name, qty: amt, unit: unit, macros100:{k,p,c,f,fiber,salt} });
+    if (save) saveToIngLib({ name, p, c, f, k, fiber, salt });
+    renderIngList();
+  });
 }
 window.confirmManual = confirmManual;
 
 function confirmCatNone() {
   const name = prompt('Nombre del ingrediente (sin macros):', '') || 'Ingrediente';
   closeCat();
-  const qty = prompt(`¿Cuántos gramos de "${name}"?`, '100');
-  if (qty === null) return;
-  dishIngredients.push({ id:'ing_'+Date.now(), name, qty: parseFloat(qty)||100, unit:'g', macros100:null });
-  renderIngList();
+  showQtyPicker(`Cantidad de "${name}"`, (amt, unit) => {
+    dishIngredients.push({ id:'ing_'+Date.now(), name, qty: amt, unit: unit, macros100:null });
+    renderIngList();
+  });
 }
 window.confirmCatNone = confirmCatNone;
 
@@ -3770,6 +3768,35 @@ function showBibSub(sub) {
 }
 window.showBibSub = showBibSub;
 
+
+// ── PICKER DE CANTIDAD ──
+let _qtyCallback = null;
+
+function showQtyPicker(label, callback) {
+  _qtyCallback = callback;
+  document.getElementById('qty-title').textContent = label;
+  const amt = document.getElementById('qty-amount');
+  amt.value = '100';
+  document.getElementById('qty-unit').value = 'g';
+  document.getElementById('qty-overlay').classList.add('open');
+  setTimeout(() => { try { amt.select(); amt.focus(); } catch(e){} }, 150);
+}
+window.showQtyPicker = showQtyPicker;
+
+function confirmQty() {
+  const amt  = parseFloat(document.getElementById('qty-amount').value) || 100;
+  const unit = document.getElementById('qty-unit').value;
+  document.getElementById('qty-overlay').classList.remove('open');
+  if (_qtyCallback) { _qtyCallback(amt, unit); _qtyCallback = null; }
+}
+window.confirmQty = confirmQty;
+
+function cancelQty() {
+  document.getElementById('qty-overlay').classList.remove('open');
+  _qtyCallback = null;
+}
+window.cancelQty = cancelQty;
+
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
@@ -3785,5 +3812,30 @@ if (!window._history)  window._history  = [];
 // Arrancar en Semana (más útil, y así el grid se renderiza de inmediato)
 switchView('semana');
 </script>
+
+<!-- PICKER DE CANTIDAD -->
+<div class="overlay" id="qty-overlay">
+  <div class="sheet" style="max-width:360px;width:100%">
+    <div class="sheet-header">
+      <span id="qty-title" style="font-weight:700;font-size:0.95rem"></span>
+      <button class="sheet-close" onclick="cancelQty()">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin:16px 0 12px">
+      <input id="qty-amount" type="number" min="0" step="any" value="100"
+        style="flex:1;font-size:1.2rem;text-align:center;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--ink)"
+        onkeydown="if(event.key==='Enter')confirmQty()"/>
+      <select id="qty-unit"
+        style="font-size:1rem;padding:10px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);color:var(--ink)">
+        <option value="g">g</option>
+        <option value="ml">ml</option>
+        <option value="uds">uds</option>
+        <option value="cucharada">cuchara</option>
+        <option value="taza">taza</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-accent" style="width:100%;padding:12px;font-size:1rem" onclick="confirmQty()">✓ Añadir</button>
+  </div>
+</div>
+
 </body>
 </html>
