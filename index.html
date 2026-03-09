@@ -1073,6 +1073,103 @@ try {
 </script>
 
 <script>
+// ── BASE DE DATOS DE ALIMENTOS (por 100g) ──
+const FOOD_DB = {
+  "🥩 Carnes y aves": [
+    {name:"Pechuga de pollo",k:165,p:31,c:0,f:3.6,salt:0.1},
+    {name:"Muslo de pollo",k:209,p:26,c:0,f:11,salt:0.1},
+    {name:"Ternera (filete)",k:158,p:26,c:0,f:5.5,salt:0.07},
+    {name:"Cerdo (lomo)",k:182,p:22,c:0,f:10,salt:0.06},
+    {name:"Pavo (pechuga)",k:135,p:29,c:0,f:1.5,salt:0.08},
+    {name:"Cordero (pierna)",k:282,p:17,c:0,f:23,salt:0.08},
+    {name:"Jamón serrano",k:241,p:30,c:0.5,f:13,salt:4.5},
+    {name:"Chorizo",k:455,p:24,c:2,f:39,salt:3.5},
+    {name:"Bacon",k:541,p:14,c:1,f:54,salt:2.1},
+  ],
+  "🐟 Pescados y mariscos": [
+    {name:"Salmón",k:208,p:20,c:0,f:13,salt:0.06},
+    {name:"Atún (fresco)",k:184,p:30,c:0,f:6.5,salt:0.1},
+    {name:"Atún en lata (agua)",k:116,p:26,c:0,f:1,salt:0.4},
+    {name:"Merluza",k:86,p:18,c:0,f:1.5,salt:0.12},
+    {name:"Dorada",k:96,p:18,c:0,f:2.5,salt:0.1},
+    {name:"Sardinas",k:208,p:20,c:0,f:13,salt:0.6},
+    {name:"Gambas",k:85,p:18,c:0.3,f:0.9,salt:0.4},
+    {name:"Bacalao",k:82,p:18,c:0,f:0.7,salt:0.1},
+  ],
+  "🥚 Huevos y lácteos": [
+    {name:"Huevo entero",k:155,p:13,c:1,f:11,salt:0.4},
+    {name:"Leche entera",k:61,p:3.2,c:4.7,f:3.3,salt:0.1},
+    {name:"Leche desnatada",k:35,p:3.5,c:5,f:0.1,salt:0.1},
+    {name:"Yogur natural",k:61,p:3.5,c:4.7,f:3.3,salt:0.1},
+    {name:"Yogur griego",k:97,p:9,c:3.6,f:5,salt:0.1},
+    {name:"Queso fresco",k:98,p:12,c:2.7,f:4.5,salt:0.5},
+    {name:"Queso manchego",k:392,p:26,c:0.5,f:32,salt:1.8},
+    {name:"Mozzarella",k:280,p:18,c:2,f:22,salt:0.6},
+    {name:"Queso cottage",k:98,p:11,c:3.4,f:4.3,salt:0.3},
+  ],
+  "🌾 Cereales y legumbres": [
+    {name:"Arroz blanco (cocido)",k:130,p:2.7,c:28,f:0.3,salt:0},
+    {name:"Arroz integral (cocido)",k:111,p:2.6,c:23,f:0.9,salt:0},
+    {name:"Pasta (cocida)",k:131,p:5,c:25,f:1.1,salt:0},
+    {name:"Pan de trigo",k:265,p:9,c:49,f:3.2,salt:1.2},
+    {name:"Pan integral",k:247,p:9,c:43,f:3.5,salt:1},
+    {name:"Avena",k:389,p:17,c:66,f:7,salt:0.01},
+    {name:"Lentejas (cocidas)",k:116,p:9,c:20,f:0.4,salt:0.01},
+    {name:"Garbanzos (cocidos)",k:164,p:9,c:27,f:2.6,salt:0.01},
+    {name:"Alubias (cocidas)",k:127,p:9,c:22,f:0.5,salt:0.01},
+    {name:"Quinoa (cocida)",k:120,p:4.4,c:21,f:1.9,salt:0.01},
+  ],
+  "🥦 Verduras": [
+    {name:"Brócoli",k:34,p:2.8,c:7,f:0.4,salt:0.03},
+    {name:"Espinacas",k:23,p:2.9,c:3.6,f:0.4,salt:0.07},
+    {name:"Lechuga",k:15,p:1.4,c:2.9,f:0.2,salt:0.02},
+    {name:"Tomate",k:18,p:0.9,c:3.9,f:0.2,salt:0.01},
+    {name:"Cebolla",k:40,p:1.1,c:9,f:0.1,salt:0.01},
+    {name:"Ajo",k:149,p:6.4,c:33,f:0.5,salt:0.02},
+    {name:"Zanahoria",k:41,p:0.9,c:10,f:0.2,salt:0.07},
+    {name:"Pimiento rojo",k:31,p:1,c:6,f:0.3,salt:0.01},
+    {name:"Calabacín",k:17,p:1.2,c:3.1,f:0.3,salt:0.01},
+    {name:"Berenjena",k:25,p:1,c:6,f:0.2,salt:0.01},
+    {name:"Pepino",k:15,p:0.7,c:3.6,f:0.1,salt:0.01},
+    {name:"Champiñón",k:22,p:3.1,c:3.3,f:0.3,salt:0.01},
+    {name:"Patata",k:77,p:2,c:17,f:0.1,salt:0.01},
+    {name:"Batata",k:86,p:1.6,c:20,f:0.1,salt:0.06},
+  ],
+  "🍎 Frutas": [
+    {name:"Manzana",k:52,p:0.3,c:14,f:0.2,salt:0},
+    {name:"Plátano",k:89,p:1.1,c:23,f:0.3,salt:0},
+    {name:"Naranja",k:47,p:0.9,c:12,f:0.1,salt:0},
+    {name:"Fresas",k:32,p:0.7,c:8,f:0.3,salt:0},
+    {name:"Uvas",k:69,p:0.7,c:18,f:0.2,salt:0},
+    {name:"Sandía",k:30,p:0.6,c:8,f:0.2,salt:0},
+    {name:"Melón",k:34,p:0.8,c:8,f:0.2,salt:0.02},
+    {name:"Kiwi",k:61,p:1.1,c:15,f:0.5,salt:0},
+    {name:"Mango",k:60,p:0.8,c:15,f:0.4,salt:0},
+    {name:"Aguacate",k:160,p:2,c:9,f:15,salt:0.01},
+  ],
+  "🥜 Frutos secos y semillas": [
+    {name:"Almendras",k:579,p:21,c:22,f:50,salt:0.01},
+    {name:"Nueces",k:654,p:15,c:14,f:65,salt:0.002},
+    {name:"Cacahuetes",k:567,p:26,c:16,f:49,salt:0.01},
+    {name:"Semillas de chía",k:486,p:17,c:42,f:31,salt:0.02},
+    {name:"Semillas de lino",k:534,p:18,c:29,f:42,salt:0.03},
+  ],
+  "🫒 Aceites y grasas": [
+    {name:"Aceite de oliva",k:884,p:0,c:0,f:100,salt:0},
+    {name:"Aceite de girasol",k:884,p:0,c:0,f:100,salt:0},
+    {name:"Mantequilla",k:717,p:0.9,c:0.1,f:81,salt:0.01},
+  ],
+  "🧂 Condimentos y salsas": [
+    {name:"Sal",k:0,p:0,c:0,f:0,salt:100},
+    {name:"Azúcar",k:387,p:0,c:100,f:0,salt:0},
+    {name:"Miel",k:304,p:0.3,c:82,f:0,salt:0.01},
+    {name:"Ketchup",k:101,p:1.3,c:25,f:0.1,salt:2.2},
+    {name:"Mayonesa",k:680,p:1,c:2.6,f:75,salt:1.1},
+    {name:"Salsa de soja",k:53,p:8,c:5,f:0,salt:14},
+    {name:"Mostaza",k:66,p:4,c:6,f:3.3,salt:2.5},
+  ],
+};
+
 // ── ESTADO GLOBAL (vars no declaradas causaban ReferenceError en Safari) ──
 let gridPersonFilter  = 'all';
 let selPerson         = 'all';
