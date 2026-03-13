@@ -368,7 +368,7 @@ header {
   background: var(--surface);
   border: 1px solid var(--border2);
 }
-.wg-dish-free .wg-dish-name { color: #a8d8a8; font-style: italic; }
+.wg-dish-free .wg-dish-name { color: #f4a843; font-style: italic; }
 .wg-dish-del {
   background: none;
   border: none;
@@ -3856,7 +3856,12 @@ function captureWeekGrid() {
   const grid = document.getElementById('week-grid');
   const weekLabel = document.getElementById('week-selector-label')?.textContent || 'semana';
 
-  // Inyectar estilo temporal que oculta botones SOLO durante la captura
+  // Columnas más estrechas solo para la captura (mantiene la letra igual)
+  const origCols = grid.style.gridTemplateColumns;
+  grid.style.gridTemplateColumns = '52px repeat(7, 90px)';
+  grid.style.width = 'fit-content';
+
+  // Ocultar botones
   const style = document.createElement('style');
   style.id = 'capture-hide-style';
   style.textContent = `
@@ -3866,7 +3871,6 @@ function captureWeekGrid() {
   `;
   document.head.appendChild(style);
 
-  // Pequeño delay para que el estilo se aplique antes de capturar
   setTimeout(() => {
     html2canvas(grid, {
       backgroundColor: '#111',
@@ -3874,17 +3878,21 @@ function captureWeekGrid() {
       useCORS: true,
       logging: false,
     }).then(canvas => {
-      // Quitar estilo temporal
+      // Restaurar columnas originales
+      grid.style.gridTemplateColumns = origCols;
+      grid.style.width = '';
       document.getElementById('capture-hide-style')?.remove();
       const a = document.createElement('a');
       a.download = 'menu-' + weekLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.png';
       a.href = canvas.toDataURL('image/png');
       a.click();
     }).catch(err => {
+      grid.style.gridTemplateColumns = origCols;
+      grid.style.width = '';
       document.getElementById('capture-hide-style')?.remove();
       alert('Error al capturar: ' + err.message);
     });
-  }, 50);
+  }, 80);
 }
 window.captureWeekGrid = captureWeekGrid;
 
