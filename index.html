@@ -314,23 +314,25 @@ header {
 .wg-meal-label {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.3px;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 4px 8px 4px 0;
-  color: #e8a327dd;
-  text-align: right;
-  word-break: break-word;
-  line-height: 1.2;
-  background: #1e1a0e55;
-  border-radius: 6px;
+  padding: 5px 4px;
+  color: #7eb8f7;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #1a2640;
+  border-radius: 8px;
+  border: 1px solid #2a3a5a;
 }
 .wg-meal-label-compact {
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: #e8a32799;
+  font-size: 0.55rem;
+  color: #5a9fd4;
+  opacity: 0.85;
 }
 .wg-cell {
   background: var(--surface2);
@@ -363,11 +365,10 @@ header {
 }
 .wg-dish-name { flex: 1; word-break: break-word; text-align: center; }
 .wg-dish-free {
-  background: #2a1f3d;
-  color: #c9a0f5;
-  border: 1px solid #7c4dbd44;
+  background: var(--surface);
+  border: 1px solid var(--border2);
 }
-.wg-dish-free .wg-dish-name { color: #c9a0f5; }
+.wg-dish-free .wg-dish-name { color: #a8d8a8; font-style: italic; }
 .wg-dish-del {
   background: none;
   border: none;
@@ -539,6 +540,7 @@ header {
     <button class="btn btn-green" style="flex:1" onclick="saveWeek()">💾 Guardar semana</button>
     <button class="btn btn-ghost btn-sm" onclick="captureWeekGrid()" style="white-space:nowrap" title="Captura de pantalla del menú semanal">📸</button>
     <button class="btn btn-ghost btn-sm" onclick="copyWeekTo(1)" style="white-space:nowrap" title="Copiar esta semana a la siguiente">📋 Copiar →</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearWeek()" style="white-space:nowrap;color:#e86d6d" title="Borrar semana">🗑</button>
     <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">🕘 Historial</button>
   </div>
 </div>
@@ -3834,6 +3836,14 @@ function cancelQty() {
 }
 window.cancelQty = cancelQty;
 
+
+
+function clearWeek() {
+  const label = document.getElementById('week-selector-label')?.textContent || 'esta semana';
+  if (!confirm(`¿Borrar todos los platos de ${label}?\nEsta acción no se puede deshacer.`)) return;
+  window._saveWeekToDb({});
+}
+window.clearWeek = clearWeek;
 
 // ── CAPTURA SEMANAL ──
 function captureWeekGrid() {
