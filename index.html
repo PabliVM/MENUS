@@ -315,17 +315,22 @@ header {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   padding: 4px 8px 4px 0;
-  color: #e8a327cc;
+  color: #e8a327dd;
   text-align: right;
   word-break: break-word;
   line-height: 1.2;
   background: #1e1a0e55;
   border-radius: 6px;
+}
+.wg-meal-label-compact {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #e8a32799;
 }
 .wg-cell {
   background: var(--surface2);
@@ -336,6 +341,10 @@ header {
   flex-direction: column;
   gap: 2px;
   position: relative;
+}
+.wg-cell-compact {
+  min-height: 28px;
+  padding: 3px 5px;
 }
 .wg-cell:active { background: var(--surface); }
 .wg-dish {
@@ -493,6 +502,7 @@ header {
 .stats-person-kcal { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--accent); display: block; }
 .stats-person-sub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -527,6 +537,7 @@ header {
   </div>
   <div style="display:flex;gap:8px;margin-top:12px;padding-right:12px">
     <button class="btn btn-green" style="flex:1" onclick="saveWeek()">💾 Guardar semana</button>
+    <button class="btn btn-ghost btn-sm" onclick="captureWeekGrid()" style="white-space:nowrap" title="Captura de pantalla del menú semanal">📸</button>
     <button class="btn btn-ghost btn-sm" onclick="copyWeekTo(1)" style="white-space:nowrap" title="Copiar esta semana a la siguiente">📋 Copiar →</button>
     <button class="btn btn-ghost btn-sm" onclick="showWeekHistory()" style="white-space:nowrap">🕘 Historial</button>
   </div>
@@ -1208,11 +1219,11 @@ const slotId = (entry) => (typeof entry === 'string') ? entry : entry?.id;
 // ── APP STATE ──
 const DAYS  = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const MEALS = [
-  { id:'breakfast', label:'Desayuno', icon:'Desayuno'  },
-  { id:'brunch',    label:'Almuerzo', icon:'Almuerzo'  },
-  { id:'lunch',     label:'Comida',   icon:'Comida'    },
-  { id:'snack',     label:'Merienda', icon:'Merienda'  },
-  { id:'dinner',    label:'Cena',     icon:'Cena'      },
+  { id:'breakfast', label:'Desayuno', icon:'Desayuno', compact:false },
+  { id:'brunch',    label:'Almuerzo', icon:'Almuerzo', compact:true  },
+  { id:'lunch',     label:'Comida',   icon:'Comida',   compact:false },
+  { id:'snack',     label:'Merienda', icon:'Merienda', compact:true  },
+  { id:'dinner',    label:'Cena',     icon:'Cena',     compact:false },
 ];
 const UNIT_OPTS = ['g','ml','unidad','taza','cdta','cda'];
 // ── INGREDIENTES (nuevo modelo simple) ──
@@ -1742,6 +1753,9 @@ function _renderWeekGridInner() {
   });
 
   grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
+  // Filas: cabecera + comidas (compact=min-content se expande si hay platos) + total
+  const rowSizes = MEALS.map(m => m.compact ? 'minmax(36px,auto)' : 'minmax(64px,auto)');
+  grid.style.gridTemplateRows = `auto ${rowSizes.join(' ')} auto`;
   grid.className = 'week-grid';
 
   let html = '';
@@ -1759,13 +1773,13 @@ function _renderWeekGridInner() {
   });
 
   // ── FILAS COMIDAS ──
-  MEALS.forEach(({id: meal, label, icon}) => {
+  MEALS.forEach(({id: meal, label, icon, compact}) => {
     // Etiqueta de comida
-    html += `<div class="wg-meal-label" title="${label}">${icon}</div>`;
+    html += `<div class="wg-meal-label${compact?' wg-meal-label-compact':''}" title="${label}">${icon}</div>`;
 
     // Celdas por día
     for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
-      html += buildWgCell(dayIdx, meal, profiles);
+      html += buildWgCell(dayIdx, meal, profiles, compact);
     }
   });
 
@@ -1803,7 +1817,7 @@ function _renderWeekGridInner() {
 } // end _renderWeekGridInner
 window.renderWeekGrid = renderWeekGrid;
 
-function buildWgCell(dayIdx, meal, profiles) {
+function buildWgCell(dayIdx, meal, profiles, compact=false) {
   const persons    = window._persons || [];
   const groups     = window._groups  || [];
   const allEntities = [...persons, ...groups];
@@ -1815,7 +1829,7 @@ function buildWgCell(dayIdx, meal, profiles) {
 
   const buildDishHTML = (entries, eid) => entries.map(e => {
     if (e?.free) return `<div class="wg-dish wg-dish-free">
-      <span class="wg-dish-name">✏️ ${e.name}</span>
+      <span class="wg-dish-name">${e.name}</span>
       <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${e.id}','${eid}')">✕</button>
     </div>`;
     const d = gd(typeof e === 'string' ? e : e.id);
@@ -1849,7 +1863,7 @@ function buildWgCell(dayIdx, meal, profiles) {
   inner += `<button class="wg-add-btn" style="margin-top:4px"
     onclick="event.stopPropagation();openEntityPicker(${dayIdx},'${meal}')">+ Asignar</button>`;
 
-  return `<div class="wg-cell">${inner}</div>`;
+  return `<div class="wg-cell${compact?' wg-cell-compact':''}">${inner}</div>`;
 }
 window.buildWgCell = buildWgCell;
 
@@ -3819,6 +3833,47 @@ function cancelQty() {
   _qtyCallback = null;
 }
 window.cancelQty = cancelQty;
+
+
+// ── CAPTURA SEMANAL ──
+function captureWeekGrid() {
+  const grid = document.getElementById('week-grid');
+  const bar  = document.querySelector('.week-selector');
+  const filter = document.querySelector('#grid-person-filter');
+
+  // Montar contenedor temporal con fondo y padding
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'background:#111;padding:20px;display:inline-block;border-radius:16px';
+
+  // Clonar el selector de semana y el filtro de persona
+  if (bar)    wrap.appendChild(bar.cloneNode(true));
+  if (filter) wrap.appendChild(filter.cloneNode(true));
+
+  const gridClone = grid.cloneNode(true);
+  gridClone.style.minWidth = '';
+  wrap.appendChild(gridClone);
+
+  document.body.appendChild(wrap);
+
+  html2canvas(wrap, {
+    backgroundColor: '#111',
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  }).then(canvas => {
+    document.body.removeChild(wrap);
+    // Descargar
+    const a = document.createElement('a');
+    const weekLabel = document.getElementById('week-selector-label')?.textContent || 'semana';
+    a.download = 'menu-' + weekLabel.replace(/\s+/g,'-').toLowerCase() + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  }).catch(err => {
+    document.body.removeChild(wrap);
+    alert('Error al capturar: ' + err.message);
+  });
+}
+window.captureWeekGrid = captureWeekGrid;
 
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
