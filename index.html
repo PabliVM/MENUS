@@ -342,7 +342,7 @@ header {
   flex-direction: column;
   gap: 2px;
   position: relative;
-  overflow-y: auto;
+  overflow: hidden;
   align-self: stretch;
 }
 .wg-cell-compact {
@@ -353,8 +353,9 @@ header {
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
-  line-height: 1.2;
-  padding: 3px 6px;
+  line-height: 1;
+  height: 26px;
+  padding: 0 6px;
   border-radius: 5px;
   background: var(--surface);
   display: flex;
@@ -363,8 +364,13 @@ header {
   gap: 3px;
   text-align: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
-.wg-dish-name { flex: 1; word-break: break-word; text-align: center; }
+.wg-dish-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .wg-dish-free {
   background: var(--surface);
   border: 1px solid var(--border2);
@@ -1216,6 +1222,19 @@ let editId            = null;
 window._weekOffset    = 0;
 window._statsWeekOffset = 0;
 
+
+// ── ORDEN FIJO DE PERSONAS/GRUPOS ──
+const ENTITY_ORDER = ['manuela', 'laura', 'pablo', 'adultos'];
+function sortEntities(list) {
+  return [...list].sort((a, b) => {
+    const ai = ENTITY_ORDER.indexOf(a.name.toLowerCase().trim());
+    const bi = ENTITY_ORDER.indexOf(b.name.toLowerCase().trim());
+    const av = ai === -1 ? 999 : ai;
+    const bv = bi === -1 ? 999 : bi;
+    return av - bv;
+  });
+}
+
 // ── HELPERS GLOBALES ──
 const sk = (dayIdx, meal, eid) => `${dayIdx}-${meal}-${eid}`;
 const gd = (id) => (window._dishes || []).find(d => d.id === id);
@@ -1677,12 +1696,12 @@ function calcDayMacrosForEntity(dayIdx, entityId) {
   const data = window._week || {};
   const persons  = window._persons || [];
   const groups   = window._groups  || [];
-  const allEntities = [...persons,...groups];
+  const allEntities = sortEntities([...persons,...groups]);
 
   // slotIds relevantes según entityId
   let slotIds;
   if (entityId === 'all') {
-    slotIds = ['all',...persons.map(p=>p.id),...groups.map(g=>g.id)];
+    slotIds = ['all',...sortEntities([...persons,...groups]).map(e=>e.id)];
   } else {
     const isPerson = persons.some(p=>p.id===entityId);
     if (isPerson) {
@@ -1759,7 +1778,7 @@ function _renderWeekGridInner() {
 
   grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
   // Filas: cabecera + comidas (compact=min-content se expande si hay platos) + total
-  const rowSizes = MEALS.map(m => m.compact ? '44px' : '90px');
+  const rowSizes = MEALS.map(m => m.compact ? '44px' : '115px');
   grid.style.gridTemplateRows = `auto ${rowSizes.join(' ')} auto`;
   grid.className = 'week-grid';
 
@@ -1825,7 +1844,7 @@ window.renderWeekGrid = renderWeekGrid;
 function buildWgCell(dayIdx, meal, profiles, compact=false) {
   const persons    = window._persons || [];
   const groups     = window._groups  || [];
-  const allEntities = [...persons, ...groups];
+  const allEntities = sortEntities([...persons, ...groups]);
   const sharedEntries = window._week?.[sk(dayIdx, meal, 'all')] || [];
 
   const usedEntityIds = allEntities
@@ -1876,7 +1895,7 @@ window.buildWgCell = buildWgCell;
 function openEntityPicker(dayIdx, meal) {
   const persons  = window._persons || [];
   const groups   = window._groups  || [];
-  const allEntities = [...persons, ...groups];
+  const allEntities = sortEntities([...persons, ...groups]);
   const mealObj = MEALS.find(m=>m.id===meal);
 
   document.getElementById('picker-title').textContent =
@@ -3854,58 +3873,152 @@ window.clearWeek = clearWeek;
 
 // ── CAPTURA SEMANAL ──
 function captureWeekGrid() {
-  const grid = document.getElementById('week-grid');
-  const weekLabel = document.getElementById('week-selector-label')?.textContent || 'semana';
+  const weekLabel = document.getElementById('week-selector-label')?.textContent || 'Semana';
 
-  // Columnas más estrechas solo para la captura (mantiene la letra igual)
-  const origCols = grid.style.gridTemplateColumns;
-  grid.style.gridTemplateColumns = '70px repeat(7, 115px)';
-  grid.style.width = 'fit-content';
+  // ── Construir tabla HTML de cero para la imagen ──
+  const mon = getWeekMonday(window._weekOffset || 0);
+  const DAYS_SHORT = ['LUN','MAR','MIÉ','JUE','VIE','SÁB','DOM'];
+  const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
-  // Ocultar botones
-  const style = document.createElement('style');
-  style.id = 'capture-hide-style';
-  style.textContent = `
-    #week-grid .wg-add-btn,
-    #week-grid .wg-dish-del,
-    #week-grid button { display: none !important; }
-  `;
-  document.head.appendChild(style);
+  const weekDates = DAYS_SHORT.map((_, i) => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i); return d;
+  });
 
-  // Envolver el grid en un contenedor con padding elegante para la captura
-  const wrap = document.createElement('div');
-  wrap.id = 'capture-wrap';
-  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:99999;background:#0d0d0d;padding:24px 28px;border-radius:16px;display:inline-block;box-shadow:0 0 0 1px #2a3a5a';
-  const gridParent = grid.parentNode;
-  gridParent.insertBefore(wrap, grid);
-  wrap.appendChild(grid);
+  const persons  = window._persons || [];
+  const groups   = window._groups  || [];
+  const entities = sortEntities([...persons, ...groups]);
+  const week     = window._week || {};
+
+  // Colores por persona
+  const entityColor = e => e.color || '#7eb8f7';
+
+  // Construir filas de comidas para la imagen
+  const mainMeals   = MEALS.filter(m => !m.compact);
+  const compactMeals = MEALS.filter(m => m.compact);
+  const allMeals    = [...mainMeals, ...compactMeals];
+
+  function getCellEntries(dayIdx, mealId) {
+    const slotIds = ['all', ...entities.map(e => e.id)];
+    const names = [];
+    slotIds.forEach(eid => {
+      const entries = week[sk(dayIdx, mealId, eid)] || [];
+      entries.forEach(e => {
+        const name = e?.free ? e.name : (gd(typeof e==='string'?e:e.id)?.name || '');
+        if (name) names.push({ name, free: !!e?.free });
+      });
+    });
+    return names;
+  }
+
+  // Encabezados de día con fecha
+  const dayHeaders = weekDates.map((d, i) => {
+    const isToday = d.toDateString() === new Date().toDateString();
+    return `<th style="
+      padding:10px 6px 8px;
+      font-size:11px;font-weight:700;letter-spacing:1px;
+      color:${isToday ? '#e8a327' : '#7eb8f7'};
+      background:${isToday ? 'rgba(232,163,39,0.12)' : '#1a2640'};
+      border:1px solid #2a3a5a;
+      text-align:center;min-width:100px;
+    ">
+      <div>${DAYS_SHORT[i]}</div>
+      <div style="font-size:10px;font-weight:400;opacity:0.75;margin-top:2px">${d.getDate()} ${MONTHS[d.getMonth()]}</div>
+    </th>`;
+  }).join('');
+
+  // Filas — altura auto, sin truncar, todo el contenido visible
+  const rows = MEALS.map(meal => {
+    const isCompact = meal.compact;
+
+    // Calcular el máximo de entradas en cualquier celda de esta fila
+    // para que todas las celdas de la misma fila tengan la misma altura
+    const allCellEntries = weekDates.map((_, dayIdx) => getCellEntries(dayIdx, meal.id));
+    const maxEntries = Math.max(1, ...allCellEntries.map(e => e.length));
+    const cellHeight = isCompact
+      ? Math.max(44, maxEntries * 26 + 12)
+      : Math.max(70, maxEntries * 30 + 16);
+
+    const cells = weekDates.map((_, dayIdx) => {
+      const entries = allCellEntries[dayIdx];
+      const inner = entries.length
+        ? entries.map(e => `<div style="
+            font-size:${isCompact?'9':'11'}px;font-weight:600;
+            color:${e.free ? '#f4a843' : '#f0f0f0'};
+            font-style:${e.free ? 'italic' : 'normal'};
+            padding:3px 6px;margin-bottom:3px;
+            background:rgba(255,255,255,0.07);
+            border-radius:5px;
+            word-break:break-word;
+            line-height:1.3;
+          ">${e.name}</div>`).join('')
+        : `<div style="color:#ffffff18;font-size:9px;text-align:center;padding-top:${isCompact?'6':'18'}px">—</div>`;
+      return `<td style="
+        padding:6px 5px;
+        border:1px solid #1e2a3a;
+        background:#141d2b;
+        vertical-align:top;
+        height:${cellHeight}px;
+        width:105px;
+      ">${inner}</td>`;
+    }).join('');
+
+    return `<tr>
+      <td style="
+        padding:6px 12px;
+        background:#1a2640;
+        border:1px solid #2a3a5a;
+        font-size:${isCompact?'8':'10'}px;font-weight:700;
+        color:${isCompact?'#5a9fd4':'#7eb8f7'};
+        letter-spacing:1px;text-transform:uppercase;
+        white-space:nowrap;text-align:right;
+        vertical-align:middle;
+        height:${cellHeight}px;
+      ">${meal.label}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  // Tabla completa
+  const tableHTML = `
+    <div style="font-family:'Instrument Sans',system-ui,sans-serif;background:#0c1420;padding:28px 32px;display:inline-block;border-radius:16px;">
+      <div style="margin-bottom:16px;display:flex;align-items:baseline;gap:10px">
+        <span style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:700;color:#e8a327">Menú</span>
+        <span style="font-size:11px;color:#5a7a9a;letter-spacing:2px;text-transform:uppercase">${weekLabel}</span>
+      </div>
+      <table style="border-collapse:collapse;border-spacing:0">
+        <thead>
+          <tr>
+            <th style="width:72px;background:#0c1420;border:none"></th>
+            ${dayHeaders}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  // Montar fuera de pantalla y capturar
+  const offscreen = document.createElement('div');
+  offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:99999';
+  offscreen.innerHTML = tableHTML;
+  document.body.appendChild(offscreen);
 
   setTimeout(() => {
-    html2canvas(wrap, {
-      backgroundColor: '#0d0d0d',
+    html2canvas(offscreen.firstElementChild, {
+      backgroundColor: '#0c1420',
       scale: 2,
       useCORS: true,
       logging: false,
     }).then(canvas => {
-      // Restaurar DOM
-      gridParent.insertBefore(grid, wrap);
-      wrap.remove();
-      grid.style.gridTemplateColumns = origCols;
-      grid.style.width = '';
-      document.getElementById('capture-hide-style')?.remove();
+      document.body.removeChild(offscreen);
       const a = document.createElement('a');
       a.download = 'menu-' + weekLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.png';
       a.href = canvas.toDataURL('image/png');
       a.click();
     }).catch(err => {
-      gridParent.insertBefore(grid, wrap);
-      wrap.remove();
-      grid.style.gridTemplateColumns = origCols;
-      grid.style.width = '';
-      document.getElementById('capture-hide-style')?.remove();
+      document.body.removeChild(offscreen);
       alert('Error al capturar: ' + err.message);
     });
-  }, 80);
+  }, 100);
 }
 window.captureWeekGrid = captureWeekGrid;
 
