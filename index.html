@@ -3858,7 +3858,7 @@ function captureWeekGrid() {
 
   // Columnas más estrechas solo para la captura (mantiene la letra igual)
   const origCols = grid.style.gridTemplateColumns;
-  grid.style.gridTemplateColumns = '52px repeat(7, 90px)';
+  grid.style.gridTemplateColumns = '70px repeat(7, 115px)';
   grid.style.width = 'fit-content';
 
   // Ocultar botones
@@ -3871,14 +3871,24 @@ function captureWeekGrid() {
   `;
   document.head.appendChild(style);
 
+  // Envolver el grid en un contenedor con padding elegante para la captura
+  const wrap = document.createElement('div');
+  wrap.id = 'capture-wrap';
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:99999;background:#0d0d0d;padding:24px 28px;border-radius:16px;display:inline-block;box-shadow:0 0 0 1px #2a3a5a';
+  const gridParent = grid.parentNode;
+  gridParent.insertBefore(wrap, grid);
+  wrap.appendChild(grid);
+
   setTimeout(() => {
-    html2canvas(grid, {
-      backgroundColor: '#111',
+    html2canvas(wrap, {
+      backgroundColor: '#0d0d0d',
       scale: 2,
       useCORS: true,
       logging: false,
     }).then(canvas => {
-      // Restaurar columnas originales
+      // Restaurar DOM
+      gridParent.insertBefore(grid, wrap);
+      wrap.remove();
       grid.style.gridTemplateColumns = origCols;
       grid.style.width = '';
       document.getElementById('capture-hide-style')?.remove();
@@ -3887,6 +3897,8 @@ function captureWeekGrid() {
       a.href = canvas.toDataURL('image/png');
       a.click();
     }).catch(err => {
+      gridParent.insertBefore(grid, wrap);
+      wrap.remove();
       grid.style.gridTemplateColumns = origCols;
       grid.style.width = '';
       document.getElementById('capture-hide-style')?.remove();
