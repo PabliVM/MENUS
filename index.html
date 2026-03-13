@@ -996,9 +996,18 @@ window._deleteDishFromDb = async (id) => {
 };
 
 window._saveWeekToDb = async (weekData) => {
-  setSyncState('syncing', 'guardando…');
-  const key = isoMonday(window._weekOffset ?? 0);
-  await setDoc(doc(db, 'weeks', key), weekData);
+  // Actualizar estado local inmediatamente para que el UI responda sin Firebase
+  window._week = weekData;
+  renderSemana();
+  // Intentar persistir en Firebase en segundo plano
+  try {
+    setSyncState('syncing', 'guardando…');
+    const key = isoMonday(window._weekOffset ?? 0);
+    await setDoc(doc(db, 'weeks', key), weekData);
+    setSyncState('ok', '');
+  } catch(e) {
+    setSyncState('error', 'sin conexión');
+  }
 };
 
 window._loadWeek = async (offset) => {
@@ -3083,18 +3092,19 @@ async function commitPickDish(dishId, selections) {
   const newWeek = {...window._week};
   if (!newWeek[key]) newWeek[key] = [];
 
-  // Store dishId + brand overrides as an object
   const entry = Object.keys(selections).length
     ? { id: dishId, brandOverrides: selections }
     : dishId;
 
-  // Avoid duplicates (compare by id)
   const alreadyIn = (newWeek[key] || []).some(e => (typeof e === 'string' ? e : e.id) === dishId);
   if (!alreadyIn) newWeek[key].push(entry);
 
-  await window._saveWeekToDb(newWeek);
+  // Cerrar picker antes de guardar
+  document.getElementById('picker-overlay').classList.remove('open');
   pickerTarget = null;
   variantTarget = null;
+
+  await window._saveWeekToDb(newWeek);
 }
 window.commitPickDish = commitPickDish;
 
