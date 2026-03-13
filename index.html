@@ -1022,17 +1022,19 @@ window._deleteDishFromDb = async (id) => {
 };
 
 window._saveWeekToDb = async (weekData) => {
-  // Actualizar estado local inmediatamente para que el UI responda sin Firebase
+  // Actualizar estado local inmediatamente
   window._week = weekData;
+  // Guardar en localStorage como caché local (clave por semana)
+  const key = isoMonday(window._weekOffset ?? 0);
+  try { localStorage.setItem('week_' + key, JSON.stringify(weekData)); } catch(e) {}
   renderSemana();
   // Intentar persistir en Firebase en segundo plano
   try {
     setSyncState('syncing', 'guardando…');
-    const key = isoMonday(window._weekOffset ?? 0);
     await setDoc(doc(db, 'weeks', key), weekData);
     setSyncState('ok', '');
   } catch(e) {
-    setSyncState('error', 'sin conexión');
+    setSyncState('error', 'local');
   }
 };
 
@@ -1977,19 +1979,23 @@ function navigateWeek(dir) {
   updateWeekSelectorLabel();
   const key = isoMonday(window._weekOffset);
   window._currentWeekKey = key;
-  // Limpiar grid inmediatamente para que no se vean datos de la semana anterior
   const wrap = document.getElementById('week-grid-wrap');
   if (wrap) wrap.scrollLeft = 0;
-  const grid = document.getElementById('week-grid');
-  if (grid) grid.innerHTML = '';
-  // Renderizar header de días ya (sin esperar Firebase)
-  window._week = {};
+  // Cargar desde localStorage inmediatamente (sin esperar Firebase)
+  try {
+    const cached = localStorage.getItem('week_' + key);
+    window._week = cached ? JSON.parse(cached) : {};
+  } catch(e) { window._week = {}; }
   renderSemana();
-  // Luego cargar datos reales
+  // Intentar actualizar desde Firebase en segundo plano
   getDoc(doc(db, 'weeks', key)).then(snap => {
-    window._week = snap.exists() ? snap.data() : {};
-    renderSemana();
-  });
+    if (snap.exists()) {
+      window._week = snap.data();
+      // Actualizar caché local con lo de Firebase
+      try { localStorage.setItem('week_' + key, JSON.stringify(snap.data())); } catch(e) {}
+      renderSemana();
+    }
+  }).catch(() => {});
 }
 window.navigateWeek = navigateWeek;
 
@@ -3848,40 +3854,37 @@ window.clearWeek = clearWeek;
 // ── CAPTURA SEMANAL ──
 function captureWeekGrid() {
   const grid = document.getElementById('week-grid');
-  const bar  = document.querySelector('.week-selector');
-  const filter = document.querySelector('#grid-person-filter');
+  const weekLabel = document.getElementById('week-selector-label')?.textContent || 'semana';
 
-  // Montar contenedor temporal con fondo y padding
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'background:#111;padding:20px;display:inline-block;border-radius:16px';
+  // Inyectar estilo temporal que oculta botones SOLO durante la captura
+  const style = document.createElement('style');
+  style.id = 'capture-hide-style';
+  style.textContent = `
+    #week-grid .wg-add-btn,
+    #week-grid .wg-dish-del,
+    #week-grid button { display: none !important; }
+  `;
+  document.head.appendChild(style);
 
-  // Clonar el selector de semana y el filtro de persona
-  if (bar)    wrap.appendChild(bar.cloneNode(true));
-  if (filter) wrap.appendChild(filter.cloneNode(true));
-
-  const gridClone = grid.cloneNode(true);
-  gridClone.style.minWidth = '';
-  wrap.appendChild(gridClone);
-
-  document.body.appendChild(wrap);
-
-  html2canvas(wrap, {
-    backgroundColor: '#111',
-    scale: 2,
-    useCORS: true,
-    logging: false,
-  }).then(canvas => {
-    document.body.removeChild(wrap);
-    // Descargar
-    const a = document.createElement('a');
-    const weekLabel = document.getElementById('week-selector-label')?.textContent || 'semana';
-    a.download = 'menu-' + weekLabel.replace(/\s+/g,'-').toLowerCase() + '.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
-  }).catch(err => {
-    document.body.removeChild(wrap);
-    alert('Error al capturar: ' + err.message);
-  });
+  // Pequeño delay para que el estilo se aplique antes de capturar
+  setTimeout(() => {
+    html2canvas(grid, {
+      backgroundColor: '#111',
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    }).then(canvas => {
+      // Quitar estilo temporal
+      document.getElementById('capture-hide-style')?.remove();
+      const a = document.createElement('a');
+      a.download = 'menu-' + weekLabel.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.png';
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }).catch(err => {
+      document.getElementById('capture-hide-style')?.remove();
+      alert('Error al capturar: ' + err.message);
+    });
+  }, 50);
 }
 window.captureWeekGrid = captureWeekGrid;
 
