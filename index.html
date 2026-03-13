@@ -338,30 +338,31 @@ header {
   background: var(--surface2);
   border-radius: 8px;
   padding: 5px;
-  min-height: 54px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   position: relative;
+  overflow-y: auto;
+  align-self: stretch;
 }
 .wg-cell-compact {
-  min-height: 28px;
   padding: 3px 5px;
 }
 .wg-cell:active { background: var(--surface); }
 .wg-dish {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
-  line-height: 1.3;
-  padding: 4px 6px;
-  border-radius: 6px;
+  line-height: 1.2;
+  padding: 3px 6px;
+  border-radius: 5px;
   background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
   text-align: center;
+  flex-shrink: 0;
 }
 .wg-dish-name { flex: 1; word-break: break-word; text-align: center; }
 .wg-dish-free {
@@ -1758,7 +1759,7 @@ function _renderWeekGridInner() {
 
   grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
   // Filas: cabecera + comidas (compact=min-content se expande si hay platos) + total
-  const rowSizes = MEALS.map(m => m.compact ? 'minmax(36px,auto)' : 'minmax(64px,auto)');
+  const rowSizes = MEALS.map(m => m.compact ? '44px' : '90px');
   grid.style.gridTemplateRows = `auto ${rowSizes.join(' ')} auto`;
   grid.className = 'week-grid';
 
