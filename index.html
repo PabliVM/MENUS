@@ -295,19 +295,21 @@ header {
   min-width: calc(52px + 7 * 92px);
 }
 .wg-header-day {
-  background: var(--surface2);
+  background: #1a2640;
   border-radius: 8px;
   padding: 5px 4px;
   text-align: center;
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: var(--muted);
+  color: #7eb8f7;
   text-transform: uppercase;
+  border: 1px solid #2a3a5a;
 }
 .wg-header-day.today {
-  background: var(--accent)22;
+  background: var(--accent)33;
   color: var(--accent);
+  border-color: var(--accent)66;
 }
 .wg-meal-label {
   display: flex;
@@ -317,11 +319,13 @@ header {
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  padding: 4px 6px 4px 0;
-  color: var(--muted);
+  padding: 4px 8px 4px 0;
+  color: #e8a327cc;
   text-align: right;
   word-break: break-word;
   line-height: 1.2;
+  background: #1e1a0e55;
+  border-radius: 6px;
 }
 .wg-cell {
   background: var(--surface2);
@@ -349,6 +353,12 @@ header {
   text-align: center;
 }
 .wg-dish-name { flex: 1; word-break: break-word; text-align: center; }
+.wg-dish-free {
+  background: #2a1f3d;
+  color: #c9a0f5;
+  border: 1px solid #7c4dbd44;
+}
+.wg-dish-free .wg-dish-name { color: #c9a0f5; }
 .wg-dish-del {
   background: none;
   border: none;
@@ -1804,8 +1814,8 @@ function buildWgCell(dayIdx, meal, profiles) {
     .filter(eid => (window._week?.[sk(dayIdx, meal, eid)] || []).length > 0);
 
   const buildDishHTML = (entries, eid) => entries.map(e => {
-    if (e?.free) return `<div class="wg-dish">
-      <span class="wg-dish-name">📝 ${e.name}</span>
+    if (e?.free) return `<div class="wg-dish wg-dish-free">
+      <span class="wg-dish-name">✏️ ${e.name}</span>
       <button class="wg-dish-del" onclick="event.stopPropagation();removeFromSlot(${dayIdx},'${meal}','${e.id}','${eid}')">✕</button>
     </div>`;
     const d = gd(typeof e === 'string' ? e : e.id);
