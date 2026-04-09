@@ -4326,7 +4326,7 @@ async function onLabelImageSelected(event) {
     const response = await fetch('/api/scan-label', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, mediaType })
+      body: JSON.stringify({ image: base64, mediaType })
     });
 
     if (!response.ok) {
