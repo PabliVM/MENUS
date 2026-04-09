@@ -1,16 +1,30 @@
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key no configurada' });
+  if (!apiKey) return res.status(500).json({ error: 'API key no configurada' });
+
+  // Parsear body manualmente si viene como string
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch(e) { body = {}; }
   }
 
-  const { image, mediaType } = req.body;
+  const { image, mediaType } = body || {};
+
   if (!image || !mediaType) {
-    return res.status(400).json({ error: 'Faltan datos de imagen' });
+    return res.status(400).json({
+      error: 'Faltan datos de imagen',
+      received: { hasImage: !!image, hasMediaType: !!mediaType, bodyType: typeof body }
+    });
   }
 
   try {
