@@ -656,6 +656,24 @@ header {
       <button class="btn btn-ghost btn-sm" id="lib-cancel-btn" style="display:none" onclick="cancelLibEdit()">Cancelar</button>
     </div>
 
+    <!-- Botón escanear etiqueta con IA -->
+    <div style="margin-bottom:14px">
+      <button type="button" onclick="openLabelScanner()" style="
+        width:100%;padding:12px;border-radius:12px;
+        background:linear-gradient(135deg,#1a2f4a,#0f1923);
+        border:1.5px dashed #e8a32766;
+        color:#e8a327;font-size:0.88rem;font-weight:600;
+        cursor:pointer;font-family:inherit;
+        display:flex;align-items:center;justify-content:center;gap:8px;
+      ">
+        📷 Escanear etiqueta nutricional con IA
+      </button>
+      <div id="label-scan-status" style="font-size:0.72rem;color:var(--muted);text-align:center;margin-top:6px;min-height:16px"></div>
+    </div>
+    <!-- Input de imagen oculto -->
+    <input type="file" id="label-img-input" accept="image/*" capture="environment"
+      style="display:none" onchange="onLabelImageSelected(event)"/>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <div class="field"><label>Nombre</label><input id="lib-name" type="text" placeholder="Pechuga de pollo" maxlength="60"/></div>
       <div class="field" style="position:relative">
@@ -897,7 +915,7 @@ header {
     </div>
     <input id="cat-search" type="text" placeholder="Buscar…"
       style="width:100%;box-sizing:border-box;margin-bottom:12px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;color:var(--ink);font-family:inherit;font-size:0.82rem"
-      oninput="renderCatBody()" />
+      oninput="onCatSearchInput()" />
     <div id="cat-body"></div>
   </div>
 </div>
@@ -946,7 +964,19 @@ function setSyncState(state, label) {
 window._dishes  = [];
 window._week    = {};
 window._history = [];
+// _checked se carga por clave de semanas seleccionadas
 window._checked = JSON.parse(localStorage.getItem('ms-checked') || '[]');
+function _checkedKey() {
+  const weeks = [..._shopSelectedWeeks].sort().join(',') || 'all';
+  return 'ms-checked-' + weeks;
+}
+function _loadChecked() {
+  window._checked = JSON.parse(localStorage.getItem(_checkedKey()) || '[]');
+}
+function _saveChecked() {
+  localStorage.setItem(_checkedKey(), JSON.stringify(window._checked));
+  localStorage.setItem('ms-checked', JSON.stringify(window._checked)); // compat
+}
 
 // ── REALTIME LISTENERS ──
 function startListeners() {
@@ -1211,6 +1241,61 @@ const FOOD_DB = {
     {name:"Mayonesa",k:680,p:1,c:2.6,f:75,salt:1.1},
     {name:"Salsa de soja",k:53,p:8,c:5,f:0,salt:14},
     {name:"Mostaza",k:66,p:4,c:6,f:3.3,salt:2.5},
+    {name:"Vinagre",k:18,p:0,c:0.6,f:0,salt:0.01},
+    {name:"Vinagre balsámico",k:88,p:0.5,c:17,f:0,salt:0.02},
+    {name:"Salsa worcestershire",k:78,p:0,c:18,f:0,salt:3.5},
+    {name:"Tabasco",k:12,p:0.5,c:1.5,f:0.2,salt:3.2},
+    {name:"Tahini",k:595,p:17,c:21,f:54,salt:0.1},
+    {name:"Miso",k:199,p:12,c:26,f:6,salt:10},
+    {name:"Sriracha",k:93,p:2,c:18,f:1,salt:2.6},
+  ],
+  "🌿 Hierbas frescas": [
+    {name:"Cilantro fresco",k:23,p:2.1,c:3.7,f:0.5,salt:0.05},
+    {name:"Perejil",k:36,p:3,c:6.3,f:0.8,salt:0.06},
+    {name:"Albahaca fresca",k:23,p:3.2,c:2.7,f:0.6,salt:0.02},
+    {name:"Menta fresca",k:70,p:3.7,c:15,f:0.9,salt:0.03},
+    {name:"Romero fresco",k:131,p:3.3,c:21,f:5.9,salt:0.03},
+    {name:"Tomillo fresco",k:101,p:5.6,c:24,f:1.7,salt:0.03},
+    {name:"Orégano fresco",k:265,p:9,c:69,f:4.3,salt:0.03},
+    {name:"Cebollino",k:30,p:3.3,c:4.4,f:0.7,salt:0.03},
+    {name:"Eneldo fresco",k:43,p:3.5,c:7,f:1.1,salt:0.06},
+    {name:"Laurel",k:313,p:7.6,c:75,f:8.4,salt:0.02},
+  ],
+  "🫙 Especias y secos": [
+    {name:"Pimentón dulce",k:282,p:14,c:54,f:13,salt:0.07},
+    {name:"Pimentón picante",k:314,p:14,c:35,f:17,salt:0.07},
+    {name:"Comino",k:375,p:18,c:44,f:22,salt:0.17},
+    {name:"Cúrcuma",k:354,p:8,c:65,f:10,salt:0.03},
+    {name:"Curry en polvo",k:325,p:14,c:58,f:14,salt:0.05},
+    {name:"Canela",k:247,p:4,c:81,f:1.2,salt:0.01},
+    {name:"Jengibre en polvo",k:335,p:8.9,c:72,f:4.2,salt:0.03},
+    {name:"Pimienta negra",k:251,p:10,c:64,f:3.3,salt:0.02},
+    {name:"Nuez moscada",k:525,p:5.8,c:49,f:36,salt:0.02},
+    {name:"Cardamomo",k:311,p:11,c:68,f:6.7,salt:0.02},
+    {name:"Orégano seco",k:265,p:9,c:69,f:4.3,salt:0.03},
+    {name:"Tomillo seco",k:276,p:9,c:64,f:7.4,salt:0.03},
+    {name:"Hinojo semillas",k:345,p:15,c:52,f:15,salt:0.09},
+    {name:"Cayena",k:318,p:12,c:57,f:17,salt:0.07},
+    {name:"Za'atar",k:280,p:10,c:40,f:12,salt:0.5},
+    {name:"Ras el hanout",k:290,p:10,c:50,f:10,salt:0.1},
+  ],
+  "🌽 Otros vegetales y legumbres": [
+    {name:"Maíz cocido",k:96,p:3.4,c:21,f:1.5,salt:0.01},
+    {name:"Maíz en lata",k:82,p:2.7,c:18,f:0.6,salt:0.3},
+    {name:"Edamame",k:121,p:11,c:8.9,f:5.2,salt:0.01},
+    {name:"Remolacha",k:43,p:1.6,c:10,f:0.2,salt:0.08},
+    {name:"Espárragos",k:20,p:2.2,c:3.9,f:0.1,salt:0.02},
+    {name:"Alcachofa",k:47,p:3.3,c:11,f:0.2,salt:0.09},
+    {name:"Puerro",k:61,p:1.5,c:14,f:0.3,salt:0.02},
+    {name:"Apio",k:16,p:0.7,c:3,f:0.2,salt:0.08},
+    {name:"Endivia",k:17,p:1.3,c:3.4,f:0.2,salt:0.02},
+    {name:"Col lombarda",k:31,p:1.4,c:7,f:0.2,salt:0.03},
+    {name:"Coliflor",k:25,p:1.9,c:5,f:0.3,salt:0.03},
+    {name:"Coles de Bruselas",k:43,p:3.4,c:9,f:0.3,salt:0.03},
+    {name:"Guisantes",k:81,p:5.4,c:14,f:0.4,salt:0.01},
+    {name:"Judías verdes",k:31,p:1.8,c:7,f:0.1,salt:0.01},
+    {name:"Nabo",k:28,p:0.9,c:6.4,f:0.1,salt:0.02},
+    {name:"Lombarda",k:31,p:1.4,c:7,f:0.1,salt:0.03},
   ],
 };
 
@@ -1389,6 +1474,73 @@ window.openCat = openCat;
 
 function getIngRows() { return dishIngredients; }
 
+// ── BUSCADOR OPEN FOOD FACTS ──
+let _offSearchTimer = null;
+
+async function searchOpenFoodFacts(q) {
+  const resultsEl = document.getElementById('off-results');
+  if (!resultsEl) return;
+  if (!q || q.length < 2) { resultsEl.innerHTML = ''; return; }
+
+  resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:8px 0">Buscando en base de datos nutricional…</div>';
+
+  try {
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=8&lc=es&cc=es`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const products = (data.products || []).filter(p =>
+      p.product_name && p.nutriments
+    );
+
+    if (!products.length) {
+      resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:8px 0">Sin resultados en la base de datos.</div>';
+      return;
+    }
+
+    window._catItems = window._catItems || {};
+    let idx = Object.keys(window._catItems).length;
+
+    resultsEl.innerHTML = products.map(p => {
+      const n = p.nutriments;
+      const k   = Math.round(n['energy-kcal_100g'] || n['energy_100g']/4.184 || 0);
+      const pro = Math.round((n['proteins_100g']       || 0) * 10) / 10;
+      const car = Math.round((n['carbohydrates_100g']  || 0) * 10) / 10;
+      const fat = Math.round((n['fat_100g']            || 0) * 10) / 10;
+      const fib = Math.round((n['fiber_100g']          || 0) * 10) / 10;
+      const sal = Math.round((n['salt_100g']           || 0) * 10) / 10;
+      const name = p.product_name.trim().substring(0, 50);
+      const brand = p.brands ? p.brands.split(',')[0].trim() : '';
+
+      const item = { name, brand, k, p: pro, c: car, f: fat, fiber: fib, salt: sal };
+      const key = 'ci' + (idx++);
+      window._catItems[key] = item;
+
+      return `<div class="cat-item" onclick="confirmCatKey('${key}')" style="border-left:3px solid var(--accent2)">
+        <div style="flex:1;min-width:0">
+          <div class="cat-item-name">${name}${brand ? `<span class="cat-item-brand">${brand}</span>` : ''}</div>
+        </div>
+        <div class="cat-item-macros">🔥${k||'—'} · P${pro} · C${car} · G${fat}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:8px 0">Error al conectar con la base de datos.</div>';
+  }
+}
+window.searchOpenFoodFacts = searchOpenFoodFacts;
+
+function onCatSearchInput() {
+  renderCatBody();
+  clearTimeout(_offSearchTimer);
+  const q = document.getElementById('cat-search')?.value?.trim() || '';
+  if (q.length >= 2) {
+    _offSearchTimer = setTimeout(() => searchOpenFoodFacts(q), 600);
+  } else {
+    const el = document.getElementById('off-results');
+    if (el) el.innerHTML = '';
+  }
+}
+window.onCatSearchInput = onCatSearchInput;
+
 function renderCatBody() {
   const body = document.getElementById('cat-body');
   const lib = window._ingLib || [];
@@ -1449,7 +1601,14 @@ function renderCatBody() {
     </div>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="confirmCatNone()">Sin datos nutricionales</button>`;
 
-  body.innerHTML = libHtml + stdHtml + manualHtml;
+  // Sección Open Food Facts (resultados se llenan async)
+  const offHtml = `
+    <div class="cat-group" style="margin-top:4px">
+      <div class="cat-group-title" style="color:var(--accent2)">🌐 Base de datos nutricional (Open Food Facts)</div>
+      <div id="off-results" style="min-height:20px"></div>
+    </div>`;
+
+  body.innerHTML = libHtml + stdHtml + offHtml + manualHtml;
 }
 
 function closeCat(e) {
@@ -1779,7 +1938,8 @@ function _renderWeekGridInner() {
   grid.style.gridTemplateColumns = `62px repeat(7, minmax(85px, 1fr))`;
   // Filas: cabecera + comidas (compact=min-content se expande si hay platos) + total
   const rowSizes = MEALS.map(m => m.compact ? '44px' : '115px');
-  grid.style.gridTemplateRows = `auto ${rowSizes.join(' ')} auto`;
+  const totalRows = sortEntities([...persons,...groups]).map(() => '36px');
+  grid.style.gridTemplateRows = `auto ${rowSizes.join(' ')} ${totalRows.join(' ')}`;
   grid.className = 'week-grid';
 
   let html = '';
@@ -1807,35 +1967,39 @@ function _renderWeekGridInner() {
     }
   });
 
-  // ── FILA TOTALES ──
-  const goalPerson = (window._persons||[]).find(p => p.id === gridPersonFilter);
-  const goalK = goalPerson?.goalK || 0;
-  const goalP = goalPerson?.goalP || 0;
-  html += '<div class="wg-meal-label" style="color:var(--accent);font-size:0.55rem">TOTAL</div>';
-  for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
-    const t = calcDayMacrosForEntity(dayIdx, gridPersonFilter);
-    const kPct = goalK ? Math.min(100, Math.round(t.k / goalK * 100)) : 0;
-    const pPct = goalP ? Math.min(100, Math.round(t.p / goalP * 100)) : 0;
-    const kOver = goalK && t.k > goalK;
-    const pOver = goalP && t.p > goalP;
-    let inner;
-    if (t.k > 0 || t.p > 0) {
-      inner = '<div style="font-size:0.72rem;font-weight:700;color:' + (kOver?'#e86d6d':'var(--accent)') + ';text-align:center;margin-bottom:2px">'
-        + Math.round(t.k) + '<span style="font-size:0.55rem;font-weight:400"> kcal</span>'
-        + (goalK ? '<span style="font-size:0.5rem;color:var(--muted)">/' + goalK + '</span>' : '')
-        + '</div>'
-        + (goalK ? '<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:3px"><div style="height:100%;width:' + kPct + '%;background:' + (kOver?'#e86d6d':'var(--accent)') + ';border-radius:2px"></div></div>' : '')
-        + '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap">'
-        + '<span style="font-size:0.58rem;color:' + (pOver?'#e86d6d':'#6db4e8') + ';font-weight:600">P' + Math.round(t.p) + (goalP?'/'+goalP:'') + 'g</span>'
-        + '<span style="font-size:0.58rem;color:#e8c06d;font-weight:600">C' + Math.round(t.c) + 'g</span>'
-        + '<span style="font-size:0.58rem;color:#e8836d;font-weight:600">G' + Math.round(t.f) + 'g</span>'
-        + '</div>'
-        + (goalP ? '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:2px"><div style="height:100%;width:' + pPct + '%;background:' + (pOver?'#e86d6d':'#6db4e8') + ';border-radius:2px"></div></div>' : '');
-    } else {
-      inner = '<div style="text-align:center;color:var(--muted);font-size:0.65rem">—</div>';
+  // ── FILAS TOTALES POR PERSONA/GRUPO ──
+  const allProfiles = sortEntities([...persons, ...groups]);
+
+  allProfiles.forEach(entity => {
+    const goalK = entity.goalK || 0;
+    const goalP = entity.goalP || 0;
+    const color = entity.color || '#7eb8f7';
+
+    // Etiqueta con punto de color
+    html += `<div class="wg-meal-label wg-meal-label-compact" style="font-size:0.52rem;gap:4px;padding:3px 8px 3px 0">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;margin-right:2px"></span>
+      ${entity.name}
+    </div>`;
+
+    for (let dayIdx = 0; dayIdx < 7; dayIdx++) {
+      const t = calcDayMacrosForEntity(dayIdx, entity.id);
+      const kPct = goalK ? Math.min(100, Math.round(t.k / goalK * 100)) : 0;
+      const kOver = goalK && t.k > goalK;
+      let inner;
+      if (t.k > 0) {
+        inner = `<div style="font-size:0.7rem;font-weight:700;color:${kOver ? '#e86d6d' : color};text-align:center;line-height:1.1">
+            ${Math.round(t.k)}<span style="font-size:0.5rem;font-weight:400;opacity:0.7"> kcal</span>
+            ${goalK ? `<span style="font-size:0.48rem;color:var(--muted)">/${goalK}</span>` : ''}
+          </div>
+          ${goalK ? `<div style="height:3px;background:var(--border);border-radius:2px;margin-top:3px">
+            <div style="height:100%;width:${kPct}%;background:${kOver ? '#e86d6d' : color};border-radius:2px;transition:width 0.3s"></div>
+          </div>` : ''}`;
+      } else {
+        inner = `<div style="text-align:center;color:var(--muted);font-size:0.6rem">—</div>`;
+      }
+      html += `<div style="padding:4px 5px;background:${color}11;border-radius:6px;border:1px solid ${color}22;align-self:center">${inner}</div>`;
     }
-    html += '<div style="padding:5px 6px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">' + inner + '</div>';
-  }
+  });
 
   grid.innerHTML = html;
 } // end _renderWeekGridInner
@@ -2383,22 +2547,47 @@ let _shopWeeksData = {};            // key → weekData cargado
 async function loadShopWeeks() {
   const el = document.getElementById('shop-weeks-list');
   if (el) el.innerHTML = '<span style="color:var(--muted);font-size:0.78rem">Cargando…</span>';
-  const snap = await getDocs(collection(db, 'weeks'));
-  const keys = snap.docs.map(d => d.id).sort();
 
-  // Precargar datos
+  // Leer semanas desde localStorage (disponibles sin Firebase)
+  const localKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('week_')) {
+      const weekKey = k.replace('week_', '');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(weekKey)) localKeys.push(weekKey);
+    }
+  }
+  localKeys.sort();
+
+  // Cargar datos de cada semana desde localStorage
   _shopWeeksData = {};
-  snap.docs.forEach(d => { _shopWeeksData[d.id] = d.data(); });
+  localKeys.forEach(key => {
+    try {
+      const raw = localStorage.getItem('week_' + key);
+      if (raw) _shopWeeksData[key] = JSON.parse(raw);
+    } catch(e) {}
+  });
 
-  // Auto-seleccionar semana actual si no hay ninguna seleccionada
+  // Intentar también Firebase en segundo plano
+  try {
+    const snap = await getDocs(collection(db, 'weeks'));
+    snap.docs.forEach(d => {
+      _shopWeeksData[d.id] = d.data();
+      if (!localKeys.includes(d.id)) localKeys.push(d.id);
+      try { localStorage.setItem('week_' + d.id, JSON.stringify(d.data())); } catch(e) {}
+    });
+    localKeys.sort();
+  } catch(e) {}
+
+  // Auto-seleccionar semana actual
   const currentKey = isoMonday(0);
-  if (_shopSelectedWeeks.size === 0 && keys.includes(currentKey)) {
+  if (_shopSelectedWeeks.size === 0 && localKeys.includes(currentKey)) {
     _shopSelectedWeeks.add(currentKey);
-  } else if (_shopSelectedWeeks.size === 0 && keys.length) {
-    _shopSelectedWeeks.add(keys[keys.length - 1]); // última semana disponible
+  } else if (_shopSelectedWeeks.size === 0 && localKeys.length) {
+    _shopSelectedWeeks.add(localKeys[localKeys.length - 1]);
   }
 
-  renderShopWeeks(keys);
+  renderShopWeeks(localKeys);
   renderCompra();
 }
 window.loadShopWeeks = loadShopWeeks;
@@ -2435,6 +2624,7 @@ window.weekKeyToLabel = weekKeyToLabel;
 function toggleShopWeek(key, checked) {
   if (checked) _shopSelectedWeeks.add(key);
   else _shopSelectedWeeks.delete(key);
+  _loadChecked(); // cargar estado de compra para esta combinación de semanas
   renderCompra();
 }
 window.toggleShopWeek = toggleShopWeek;
@@ -2553,14 +2743,14 @@ window.deleteShopItem = deleteShopItem;
 function toggleCheck(key) {
   const idx = (window._checked||[]).indexOf(key);
   if (idx>-1) window._checked.splice(idx,1); else window._checked.push(key);
-  localStorage.setItem('ms-checked', JSON.stringify(window._checked));
+  _saveChecked();
   renderCompra();
 }
 window.toggleCheck = toggleCheck;
 
 function resetChecked() {
   window._checked = [];
-  localStorage.setItem('ms-checked','[]');
+  _saveChecked();
   localStorage.setItem('ms-shop-deleted','[]');
   renderCompra();
   toast('Lista reiniciada');
@@ -3405,14 +3595,94 @@ window.renderRecetas = renderRecetas;
 function setRecetasFilter(cat) { recetasCatFilter = cat; renderRecetas(); }
 window.setRecetasFilter = setRecetasFilter;
 
+let _fichaId = null;
+
 function openReceta(id) {
-  switchView('recetas');
-  setTimeout(() => {
-    showRecetasSub('nueva');
-    editDish(id);
-  }, 50);
+  const d = gd(id);
+  if (!d) return;
+  _fichaId = id;
+
+  // Nombre y raciones
+  document.getElementById('ficha-nombre').textContent = d.name;
+  document.getElementById('ficha-raciones').textContent =
+    d.servings ? `${d.servings} ración${d.servings>1?'es':''}` : '';
+
+  // Macros bar
+  const m = d.macros || {};
+  const macroItems = [
+    m.k ? { label:'kcal', value: Math.round(m.k), color:'#e8a327', bg:'rgba(232,163,39,0.12)' } : null,
+    m.p ? { label:'Prot', value: Math.round(m.p)+'g', color:'#7eb8f7', bg:'rgba(126,184,247,0.1)' } : null,
+    m.c ? { label:'Carb', value: Math.round(m.c)+'g', color:'#e8c06d', bg:'rgba(232,192,109,0.1)' } : null,
+    m.f ? { label:'Gras', value: Math.round(m.f)+'g', color:'#e8836d', bg:'rgba(232,131,109,0.1)' } : null,
+  ].filter(Boolean);
+
+  document.getElementById('ficha-macros-bar').innerHTML = macroItems.map(item => `
+    <div style="background:${item.bg};border:1px solid ${item.color}33;border-radius:10px;padding:8px 14px;text-align:center;min-width:58px">
+      <div style="font-size:1rem;font-weight:700;color:${item.color};font-family:'Fraunces',serif">${item.value}</div>
+      <div style="font-size:0.55rem;letter-spacing:1.5px;text-transform:uppercase;color:${item.color}99;margin-top:2px">${item.label}</div>
+    </div>`).join('') + (m.k ? ` <div style="display:flex;align-items:center;padding-left:4px;font-size:1.3rem">${kcalTraffic(m.k,'dish')}</div>` : '');
+
+  // Ingredientes
+  const ings = (d.ingredients || []).filter(i => i.name && i.name.trim());
+  const fichaIngs = document.getElementById('ficha-ings');
+  const fichaIngsSection = document.getElementById('ficha-ings-section');
+  if (ings.length) {
+    fichaIngsSection.style.display = '';
+    fichaIngs.innerHTML = ings.map((ing, idx) => {
+      const hasM = ing.macros100?.k;
+      const qtyKcal = hasM ? Math.round((ing.macros100.k * ing.qty) / 100) : null;
+      return `<div style="
+        display:flex;align-items:center;justify-content:space-between;
+        padding:9px 12px;margin-bottom:4px;border-radius:10px;
+        background:${idx%2===0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)'};
+        border-left:3px solid ${hasM ? '#e8a32766' : '#2a3a5a'};
+      ">
+        <div style="font-size:0.88rem;font-weight:500;color:#e8f0f8">${ing.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:0.82rem;color:#7eb8f7;font-weight:600">${ing.qty} ${ing.unit||'g'}</span>
+          ${qtyKcal ? `<span style="font-size:0.7rem;color:#e8a32799">${qtyKcal}kcal</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    fichaIngsSection.style.display = 'none';
+  }
+
+  // Preparación
+  const prepSection = document.getElementById('ficha-prep-section');
+  if (d.prep && d.prep.trim()) {
+    prepSection.style.display = '';
+    document.getElementById('ficha-prep').textContent = d.prep;
+  } else {
+    prepSection.style.display = 'none';
+  }
+
+  // URL
+  const urlSection = document.getElementById('ficha-url-section');
+  if (d.url && d.url.trim()) {
+    urlSection.style.display = '';
+    document.getElementById('ficha-url').href = d.url;
+  } else {
+    urlSection.style.display = 'none';
+  }
+
+  document.getElementById('ficha-overlay').classList.add('open');
 }
 window.openReceta = openReceta;
+
+function editarDesdeFicha() {
+  const id = _fichaId;
+  closeFicha();
+  switchView('recetas');
+  setTimeout(() => { showRecetasSub('nueva'); editDish(id); }, 80);
+}
+window.editarDesdeFicha = editarDesdeFicha;
+
+function closeFicha(e) {
+  if (e && e.target !== document.getElementById('ficha-overlay')) return;
+  document.getElementById('ficha-overlay').classList.remove('open');
+}
+window.closeFicha = closeFicha;
 
 // ── NUTRI SCORE ──
 const NS_THRESHOLDS = {
@@ -4022,6 +4292,80 @@ function captureWeekGrid() {
 }
 window.captureWeekGrid = captureWeekGrid;
 
+
+// ── ESCÁNER DE ETIQUETA NUTRICIONAL CON CLAUDE ──
+
+function openLabelScanner() {
+  document.getElementById('label-img-input').click();
+}
+window.openLabelScanner = openLabelScanner;
+
+async function onLabelImageSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  event.target.value = ''; // reset para poder re-seleccionar
+
+  const statusEl = document.getElementById('label-scan-status');
+  statusEl.textContent = '📷 Procesando imagen…';
+  statusEl.style.color = 'var(--accent)';
+
+  try {
+    // Convertir imagen a base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const mediaType = file.type || 'image/jpeg';
+
+    statusEl.textContent = '🤖 Claude está leyendo la etiqueta…';
+
+    // Llamar al proxy de Vercel (la API key está segura en el servidor)
+    const response = await fetch('/api/scan-label', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: base64, mediaType })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err?.error || 'Error ' + response.status);
+    }
+
+    const parsed = await response.json();
+    if (parsed.error) throw new Error(parsed.error);
+
+    // Rellenar campos del formulario
+    if (parsed.nombre) document.getElementById('lib-name').value = parsed.nombre;
+    if (parsed.marca)  document.getElementById('lib-brand').value = parsed.marca;
+    if (parsed.kcal   != null) document.getElementById('lib-k').value    = parsed.kcal;
+    if (parsed.grasas != null) document.getElementById('lib-f').value    = parsed.grasas;
+    if (parsed.saturadas != null) document.getElementById('lib-sat').value  = parsed.saturadas;
+    if (parsed.hidratos  != null) document.getElementById('lib-c').value    = parsed.hidratos;
+    if (parsed.azucares  != null) document.getElementById('lib-sugar').value = parsed.azucares;
+    if (parsed.proteinas != null) document.getElementById('lib-p').value    = parsed.proteinas;
+    if (parsed.fibra  != null) document.getElementById('lib-fiber').value = parsed.fibra;
+    if (parsed.sal    != null) document.getElementById('lib-salt').value  = parsed.sal;
+
+    // kJ aproximado si no hay
+    if (parsed.kcal && !document.getElementById('lib-kj').value) {
+      document.getElementById('lib-kj').value = Math.round(parsed.kcal * 4.184);
+    }
+
+    const filled = Object.values(parsed).filter(v => v != null && v !== '').length;
+    statusEl.textContent = `✅ ${filled} campos rellenados automáticamente. Revisa y corrige si es necesario.`;
+    statusEl.style.color = '#6db88a';
+
+  } catch(e) {
+    console.error('Label scan error:', e);
+    statusEl.textContent = '❌ Error: ' + (e.message || 'No se pudo leer la etiqueta');
+    statusEl.style.color = '#e86d6d';
+  }
+}
+window.onLabelImageSelected = onLabelImageSelected;
+
 // ── INIT ──
 document.getElementById('f-name').addEventListener('keydown', e=>{ if(e.key==='Enter') saveDish(); });
 document.getElementById('f-servings').addEventListener('input', updateMacroPreview);
@@ -4059,6 +4403,73 @@ switchView('semana');
       </select>
     </div>
     <button type="button" class="btn btn-accent" style="width:100%;padding:12px;font-size:1rem" onclick="confirmQty()">✓ Añadir</button>
+  </div>
+</div>
+
+
+<!-- FICHA RECETA -->
+<div class="overlay" id="ficha-overlay" onclick="closeFicha(event)" style="align-items:center;padding:16px 12px">
+  <div id="ficha-sheet" style="
+    background:#0f1923;
+    border-radius:20px;
+    width:100%;max-width:520px;
+    max-height:88vh;
+    overflow-y:auto;
+    position:relative;
+    box-shadow:0 24px 60px rgba(0,0,0,0.7);
+    border:1px solid #1e3050;
+  ">
+    <!-- Header decorativo -->
+    <div id="ficha-header" style="
+      background:linear-gradient(135deg,#1a2f4a 0%,#0f1923 60%);
+      padding:28px 24px 20px;
+      border-radius:20px 20px 0 0;
+      border-bottom:1px solid #1e3050;
+      position:relative;
+    ">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1">
+          <div style="font-size:0.55rem;letter-spacing:3px;text-transform:uppercase;color:#e8a32799;margin-bottom:8px;font-family:'Instrument Sans',sans-serif">Receta</div>
+          <h2 id="ficha-nombre" style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:700;color:#f5f0e8;line-height:1.2;margin:0"></h2>
+          <div id="ficha-raciones" style="font-size:0.72rem;color:#7eb8f7;margin-top:6px;letter-spacing:0.5px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;flex-shrink:0">
+          <button onclick="closeFicha()" style="background:rgba(255,255,255,0.08);border:none;color:#aaa;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">✕</button>
+          <button onclick="editarDesdeFicha()" id="ficha-edit-btn" style="
+            background:#e8a327;color:#0f1923;border:none;border-radius:10px;
+            padding:7px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;
+            letter-spacing:0.5px;white-space:nowrap;font-family:inherit
+          ">✏️ Editar</button>
+        </div>
+      </div>
+      <!-- Macros destacados -->
+      <div id="ficha-macros-bar" style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"></div>
+    </div>
+
+    <!-- Cuerpo -->
+    <div style="padding:20px 24px 28px">
+      <!-- Ingredientes -->
+      <div id="ficha-ings-section" style="margin-bottom:20px">
+        <div style="font-size:0.55rem;letter-spacing:3px;text-transform:uppercase;color:#e8a32799;margin-bottom:12px;font-family:'Instrument Sans',sans-serif">Ingredientes</div>
+        <div id="ficha-ings"></div>
+      </div>
+
+      <!-- Preparación -->
+      <div id="ficha-prep-section" style="display:none;margin-bottom:20px">
+        <div style="font-size:0.55rem;letter-spacing:3px;text-transform:uppercase;color:#e8a32799;margin-bottom:12px;font-family:'Instrument Sans',sans-serif">Preparación</div>
+        <div id="ficha-prep" style="font-size:0.88rem;color:#c8d8e8;line-height:1.7;white-space:pre-wrap"></div>
+      </div>
+
+      <!-- Vídeo -->
+      <div id="ficha-url-section" style="display:none">
+        <a id="ficha-url" href="#" target="_blank" style="
+          display:inline-flex;align-items:center;gap:8px;
+          background:rgba(232,163,39,0.1);border:1px solid rgba(232,163,39,0.3);
+          color:#e8a327;border-radius:10px;padding:10px 16px;
+          font-size:0.82rem;font-weight:600;text-decoration:none;
+        ">🎬 Ver vídeo / receta →</a>
+      </div>
+    </div>
   </div>
 </div>
 
